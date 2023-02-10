@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:hass_car_connector/database.dart';
+import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/remote/mqtt.dart';
 import 'package:hass_car_connector/remote/remote.dart';
 import 'package:hass_car_connector/repositories/remote_config.dart';
@@ -19,7 +20,7 @@ class RemoteService {
   RemoteService({required this.remoteConfigRepository});
 
   Future<List<Remote>> buildAllEnabledRemotes() async {
-    var configs = await locator<AppDatabase>().remoteConfigRepository.findEnabled();
+    var configs = await locator<AppDatabase>().remoteConfigRepository.findAll();
     var remotes = List<Remote>.empty(growable: true);
     for (var config in configs) {
       var factory = remoteFactorys[config.type];
@@ -32,5 +33,13 @@ class RemoteService {
       remotes.add(remote);
     }
     return remotes;
+  }
+
+  Future<void> saveRemoteConfig(RemoteConfig remoteConfig) async {
+    if (remoteConfig.id == null) {
+      remoteConfig.id = await remoteConfigRepository.insertRemoteConfig(remoteConfig);
+    } else {
+      await remoteConfigRepository.updateRemoteConfig(remoteConfig);
+    }
   }
 }

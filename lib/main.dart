@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hass_car_connector/background.dart';
+import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
+import 'package:hass_car_connector/ui/remote_config_form.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await setupLocator();
   await initializeService();
   runApp(const MyApp());
 }
@@ -79,12 +82,16 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: const Padding(
+      body: Padding(
         padding: EdgeInsets.all(12),
-        child: MqttRemoteConfigForm(),
+        child: Container(),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return RemoteConfigForm();
+          }));
+        },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

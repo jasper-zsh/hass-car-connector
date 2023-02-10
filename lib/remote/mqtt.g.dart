@@ -27,14 +27,3 @@ Map<String, dynamic> _$MqttRemoteConfigToJson(MqttRemoteConfig instance) =>
       'password': instance.password,
       'identifier': instance.identifier,
     };
-
-MqttSensorPayload _$MqttSensorPayloadFromJson(Map<String, dynamic> json) =>
-    MqttSensorPayload(
-      topic: json['topic'] as String,
-      value: json['value'] as String,
-    );
-
-Map<String, dynamic> _$MqttSensorPayloadToJson(MqttSensorPayload instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-    };

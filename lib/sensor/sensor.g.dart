@@ -8,7 +8,7 @@ part of 'sensor.dart';
 
 SensorData _$SensorDataFromJson(Map<String, dynamic> json) => SensorData(
       json['type'] as String,
-      json['data'] as String,
+      json['data'] as Map<String, dynamic>,
     );
 
 Map<String, dynamic> _$SensorDataToJson(SensorData instance) =>

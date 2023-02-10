@@ -4,7 +4,7 @@ class DummySensor extends Sensor {
   @override
   Future<List<SensorData>> read() async {
     return [
-      SensorData('odometer', '50'),
+      SensorData('odometer', <String, dynamic>{'value': 50}),
     ];
   }
 }

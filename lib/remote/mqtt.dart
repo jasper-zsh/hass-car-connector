@@ -11,18 +11,18 @@ part 'mqtt.g.dart';
 
 @JsonSerializable()
 class MqttRemoteConfig {
-  String scheme;
-  String host;
-  int port;
+  String? scheme;
+  String? host;
+  int? port;
   String? path;
   String? username;
   String? password;
   String? identifier;
 
   MqttRemoteConfig({
-    required this.scheme,
-    required this.host,
-    required this.port,
+    this.scheme,
+    this.host,
+    this.port,
     this.path,
     this.username,
     this.password,
@@ -34,18 +34,14 @@ class MqttRemoteConfig {
   Map<String, dynamic> toJson() => _$MqttRemoteConfigToJson(this);
 }
 
-@JsonSerializable()
 class MqttSensorPayload {
-  @JsonKey(includeToJson: false)
   String topic;
-  String value;
+  Map<String, dynamic> payload;
 
   MqttSensorPayload({
     required this.topic,
-    required this.value
+    required this.payload
   });
-
-  Map<String, dynamic> toJson() => _$MqttSensorPayloadToJson(this);
 }
 
 class MqttRemote extends Remote {
@@ -55,11 +51,14 @@ class MqttRemote extends Remote {
   @override
   Future<void> init(Map<String, dynamic> configMap) async {
     config = MqttRemoteConfig.fromJson(configMap);
+    if (config.identifier == null || config.identifier!.isEmpty) {
+      config.identifier = 'hass_car';
+    }
     client = MqttServerClient("${config.scheme}://${config.host}${config.path}", "hass_car.${config.identifier}");
     if (['ws', 'wss'].contains(config.scheme)) {
       client.useWebSocket = true;
     }
-    client.port = config.port;
+    client.port = config.port!;
     client.autoReconnect = true;
     client.onConnected = onConnected;
     client.onDisconnected = onDisconnected;
@@ -86,11 +85,11 @@ class MqttRemote extends Remote {
   Future<void> reportSensorDatas(Iterable<SensorData> sensorDatas) async {
     var payloads = sensorDatas.map((e) => MqttSensorPayload(
       topic: "hass_car/${config.identifier}/${e.type}",
-      value: e.data
+      payload: e.data
     ));
     for (var payload in payloads) {
       var builder = MqttClientPayloadBuilder();
-      builder.addString(jsonEncode(payload));
+      builder.addString(jsonEncode(payload.payload));
       client.publishMessage(payload.topic, MqttQos.exactlyOnce, builder.payload!);
     }
   }
