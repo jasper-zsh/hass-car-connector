@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:geolocator/geolocator.dart';
@@ -42,7 +43,12 @@ class SystemSensor extends Sensor {
       location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
     }
     if (location != null) {
-      data.add(SensorData('location', location.toJson()));
+      data.add(SensorData('location', 'unknown'));
+      data.add(SensorData('location/attributes', jsonEncode(LocationData(
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+      ))));
     }
     return data;
   }

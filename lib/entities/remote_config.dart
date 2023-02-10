@@ -10,6 +10,7 @@ class RemoteConfig {
   bool enabled;
 
   RemoteConfig({
+    this.id,
     required this.name,
     required this.type,
     required this.config,

@@ -7,7 +7,7 @@ part 'sensor.g.dart';
 @JsonSerializable()
 class SensorData {
   String type;
-  Map<String, dynamic> data;
+  String data;
 
   SensorData(this.type, this.data);
 

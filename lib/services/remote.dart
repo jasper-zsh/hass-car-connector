@@ -20,7 +20,7 @@ class RemoteService {
   RemoteService({required this.remoteConfigRepository});
 
   Future<List<Remote>> buildAllEnabledRemotes() async {
-    var configs = await locator<AppDatabase>().remoteConfigRepository.findAll();
+    var configs = await locator<AppDatabase>().remoteConfigRepository.findEnabled();
     var remotes = List<Remote>.empty(growable: true);
     for (var config in configs) {
       var factory = remoteFactorys[config.type];

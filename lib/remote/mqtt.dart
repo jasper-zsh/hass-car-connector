@@ -36,7 +36,7 @@ class MqttRemoteConfig {
 
 class MqttSensorPayload {
   String topic;
-  Map<String, dynamic> payload;
+  String payload;
 
   MqttSensorPayload({
     required this.topic,
@@ -89,7 +89,7 @@ class MqttRemote extends Remote {
     ));
     for (var payload in payloads) {
       var builder = MqttClientPayloadBuilder();
-      builder.addString(jsonEncode(payload.payload));
+      builder.addString(payload.payload);
       client.publishMessage(payload.topic, MqttQos.exactlyOnce, builder.payload!);
     }
   }

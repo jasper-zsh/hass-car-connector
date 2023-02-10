@@ -3,6 +3,7 @@ import 'package:hass_car_connector/background.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
+import 'package:hass_car_connector/ui/remote_config_list.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,18 +56,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  int currentTab = 0;
+  var _controller = PageController(initialPage: 0);
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +73,50 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(12),
-        child: Container(),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: 2,
+        itemBuilder: (context, index) {
+          switch (index) {
+            case 0:
+              return RemoteConfigListPage();
+              break;
+            case 1:
+              return Center(
+                child: Text('TODO'),
+              );
+              break;
+          }
+        },
+        onPageChanged: (page) {
+          setState(() {
+            currentTab = page;
+          });
+        },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentTab,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_remote),
+            label: 'Remotes'
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.sensors), label: 'Sensors')
+        ],
+        onTap: (index) {
+          setState(() {
+            _controller.animateToPage(index, duration: Duration(microseconds: 300), curve: Curves.easeIn);
+          });
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) {
-            return RemoteConfigForm();
-          }));
+          switch (currentTab) {
+            case 0:
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return RemoteConfigForm();
+              }));
+          }
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
