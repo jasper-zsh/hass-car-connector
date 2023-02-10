@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:event/event.dart';
 import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/remote/mqtt.dart';
@@ -13,6 +14,8 @@ typedef Remote RemoteFactory();
 var remoteFactorys = <String, RemoteFactory>{
   'mqtt': () => MqttRemote()
 };
+
+var remoteUpdated = Event();
 
 class RemoteService {
   RemoteConfigRepository remoteConfigRepository;

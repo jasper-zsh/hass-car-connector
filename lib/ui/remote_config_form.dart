@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:event/event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
@@ -20,6 +21,10 @@ class RemoteConfigForm extends StatefulWidget {
 
 class RemoteConfigFormState extends State<RemoteConfigForm> {
   final saveEvent = Event();
+  final _formKey = GlobalKey<FormState>();
+
+  late Map<String, dynamic> config;
+  late String name;
 
   @override
   void initState() {
@@ -43,13 +48,42 @@ class RemoteConfigFormState extends State<RemoteConfigForm> {
           )
         ],
       ),
-      body: MqttRemoteConfigForm(
-        saveEvent: saveEvent,
-        configCallback: (config) async {
-          var remoteConfig = RemoteConfig(name: 'foo', type: 'mqtt', config: jsonEncode(config));
-          await locator<RemoteService>().saveRemoteConfig(remoteConfig);
-          Navigator.pop(context);
-        },
+      body: Column(
+        children: [
+          Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(
+                    border: UnderlineInputBorder(),
+                    labelText: 'Name'
+                  ),
+                  onSaved: (value) {
+                    setState(() {
+                      name = value!;
+                    });
+                  },
+                )
+              ],
+            )
+          ),
+          Expanded(child: MqttRemoteConfigForm(
+            saveEvent: saveEvent,
+            configCallback: (config) async {
+              this.config = config;
+              if (_formKey.currentState!.validate()) {
+                _formKey.currentState!.save();
+
+                var remoteConfig = RemoteConfig(name: name, type: 'mqtt', config: jsonEncode(this.config));
+                await locator<RemoteService>().saveRemoteConfig(remoteConfig);
+                remoteUpdated.broadcast();
+                Navigator.pop(context);
+              }
+            },
+          ))
+        ],
       ),
     );
   }

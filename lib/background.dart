@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:ui';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -30,6 +31,7 @@ Future<void> initializeService() async {
 Future<void> onStart(ServiceInstance service) async {
   await setupLocator();
   var reporter = ReporterService(
+    service: service,
     remoteService: locator<RemoteService>()
   );
   await reporter.init();
@@ -40,11 +42,26 @@ class ReporterService {
   List<Remote> remotes = List.empty(growable: true);
   List<Sensor> sensors = List.empty(growable: true);
 
+  ServiceInstance service;
   RemoteService remoteService;
 
   ReporterService({
-    required this.remoteService
-  });
+    required this.remoteService,
+    required this.service
+  }) {
+    service.on('reload').listen((event) {
+      reload();
+    });
+  }
+
+  Future<void> reload() async {
+    log('reloading reporter service...');
+    for (var remote in remotes) {
+      await remote.stop();
+    }
+    await init();
+    log('reporting service reloaded.');
+  }
 
   Future<void> init() async {
     remotes = await remoteService.buildAllEnabledRemotes();
@@ -55,6 +72,18 @@ class ReporterService {
     var sensor = DummySensor();
     sensors.add(sensor);
     sensors.add(SystemSensor());
+
+    for (var remote in remotes) {
+      if (remote is Discovery) {
+        for (var sensor in sensors) {
+          if (sensor is Discoverable) {
+            await (remote as Discovery).discovery(
+              await (sensor as Discoverable).discovery()
+            );
+          }
+        }
+      }
+    }
   }
 
   void start() {

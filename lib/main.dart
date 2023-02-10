@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/background.dart';
 import 'package:hass_car_connector/service_locator.dart';
+import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
 import 'package:hass_car_connector/ui/remote_config_list.dart';
+import 'package:hass_car_connector/ui/settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupLocator();
   await initializeService();
+  remoteUpdated.subscribe((args) {
+    FlutterBackgroundService().invoke('reload');
+  });
   runApp(const MyApp());
 }
 
@@ -61,31 +67,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    const navigateBarItems = [
+      BottomNavigationBarItem(icon: Icon(Icons.settings_remote), label: 'Remotes'),
+      BottomNavigationBarItem(icon: Icon(Icons.sensors), label: 'Sensors'),
+      BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings')
+    ];
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: PageView.builder(
         controller: _controller,
-        itemCount: 2,
+        itemCount: navigateBarItems.length,
         itemBuilder: (context, index) {
           switch (index) {
             case 0:
               return RemoteConfigListPage();
-              break;
-            case 1:
-              return Center(
+            case 2:
+              return SettingsPage();
+            default:
+              return const Center(
                 child: Text('TODO'),
               );
-              break;
           }
         },
         onPageChanged: (page) {
@@ -96,13 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentTab,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_remote),
-            label: 'Remotes'
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.sensors), label: 'Sensors')
-        ],
+        items: navigateBarItems,
         onTap: (index) {
           setState(() {
             _controller.animateToPage(index, duration: Duration(microseconds: 300), curve: Curves.easeIn);

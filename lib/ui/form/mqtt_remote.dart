@@ -50,95 +50,85 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
 
   @override
   Widget build(BuildContext context) {
+    var fields = [
+      DropdownButtonFormField(
+        decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: "Scheme"
+        ),
+        onChanged: (value) {},
+        validator: (value) {
+          if (value == null) {
+            return 'Please select scheme';
+          }
+        },
+        onSaved: (value) {
+          config.scheme = value;
+        },
+        items: ['ws', 'wss'].map((e) => DropdownMenuItem<String>(
+          value: e,
+          child: Text(e),
+        )).toList(),
+      ),
+      TextFormField(
+        decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: "Host"
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please input host';
+          }
+        },
+        onSaved: (value) {
+          config.host = value;
+        },
+      ),
+      TextFormField(
+        decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: "Port"
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please input port';
+          }
+        },
+        onSaved: (value) {
+          config.port = int.parse(value!);
+        },
+      ),
+      TextFormField(
+        decoration: const InputDecoration(
+          border: UnderlineInputBorder(),
+          labelText: "Path",
+        ),
+        onSaved: (value) {
+          config.path = value;
+        },
+      ),
+      TextFormField(
+        decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: "Username"
+        ),
+        onSaved: (value) {
+          config.username = value;
+        },
+      ),
+      TextFormField(
+        decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+            labelText: "Password"
+        ),
+        onSaved: (value) {
+          config.password = value;
+        },
+      ),
+    ];
     return Form(
       key: _formKey,
-      child: Column(
-        children: [
-          DropdownButtonFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Scheme"
-            ),
-            onChanged: (value) {},
-            validator: (value) {
-              if (value == null) {
-                return 'Please select scheme';
-              }
-            },
-            onSaved: (value) {
-              config.scheme = value;
-            },
-            items: ['ws', 'wss'].map((e) => DropdownMenuItem<String>(
-              value: e,
-              child: Text(e),
-            )).toList(),
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Host"
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please input host';
-              }
-            },
-            onSaved: (value) {
-              config.host = value;
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Port"
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please input port';
-              }
-            },
-            onSaved: (value) {
-              config.port = int.parse(value!);
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-              border: UnderlineInputBorder(),
-              labelText: "Path",
-            ),
-            onSaved: (value) {
-              config.path = value;
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Username"
-            ),
-            onSaved: (value) {
-              config.username = value;
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Password"
-            ),
-            onSaved: (value) {
-              config.password = value;
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Identifier"
-            ),
-            onSaved: (value) {
-              config.identifier = value;
-            },
-          ),
-        ],
-      ),
+      child: ListView.builder(itemBuilder: (context, index) => fields[index], itemCount: fields.length,),
     );
   }
 }

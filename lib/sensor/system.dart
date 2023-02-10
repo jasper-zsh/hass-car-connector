@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:hass_car_connector/entities/settings.dart';
+import 'package:hass_car_connector/service_locator.dart';
+import 'package:hass_car_connector/services/settings.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
@@ -24,7 +27,7 @@ class LocationData {
   Map<String, dynamic> toJson() => _$LocationDataToJson(this);
 }
 
-class SystemSensor extends Sensor {
+class SystemSensor implements Sensor, Discoverable {
   @override
   Future<List<SensorData>> read() async {
     var permission = await Geolocator.checkPermission();
@@ -43,13 +46,30 @@ class SystemSensor extends Sensor {
       location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
     }
     if (location != null) {
-      data.add(SensorData('location', 'unknown'));
-      data.add(SensorData('location/attributes', jsonEncode(LocationData(
+      data.add(SensorData('location', jsonEncode(LocationData(
         latitude: location.latitude,
         longitude: location.longitude,
         accuracy: location.accuracy,
       ))));
     }
     return data;
+  }
+
+  @override
+  Future<List<DiscoveryData>> discovery() async {
+    var identifier = await locator<SettingsService>().readSetting(carIdentifier);
+    return [
+      DiscoveryData(
+        type: 'device_tracker',
+        objectId: 'location',
+        friendlyName: "Location",
+        overrideConfig: {
+          'mqtt': {
+            'state_topic': "hass_car/$identifier/location/state",
+            'json_attributes_topic': "hass_car/$identifier/location"
+          }
+        }
+      ),
+    ];
   }
 }

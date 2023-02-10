@@ -6,3 +6,7 @@ abstract class Remote {
   Future<void> stop();
   Future<void> reportSensorDatas(Iterable<SensorData> sensorDatas);
 }
+
+abstract class Discovery {
+  Future<void> discovery(Iterable<DiscoveryData> discoveryDatas);
+}

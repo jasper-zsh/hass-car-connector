@@ -1,7 +1,10 @@
+import 'package:event/event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
+import 'package:hass_car_connector/services/remote.dart';
 
 class RemoteConfigListPage extends StatefulWidget {
   @override
@@ -18,9 +21,16 @@ class RemoteConfigListPageState extends State<RemoteConfigListPage> {
   void initState() {
     super.initState();
     listFuture = locator<AppDatabase>().remoteConfigRepository.findAll();
+    remoteUpdated.subscribe(_reload);
   }
 
-  void reload() {
+  @override
+  void dispose() {
+    remoteUpdated.unsubscribe(_reload);
+    super.dispose();
+  }
+
+  void _reload(EventArgs? args) {
     setState(() {
       listFuture = locator<AppDatabase>().remoteConfigRepository.findAll();
     });
@@ -63,20 +73,20 @@ class RemoteConfigListPageState extends State<RemoteConfigListPage> {
             Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: remoteConfig.enabled ? ElevatedButton(
               onPressed: () async {
                 await locator<AppDatabase>().remoteConfigRepository.setEnabledById(remoteConfig.id!, false);
-                reload();
+                remoteUpdated.broadcast();
               },
               child: Text('禁用'),
             ) : ElevatedButton(
               onPressed: () async {
                 await locator<AppDatabase>().remoteConfigRepository.setEnabledById(remoteConfig.id!, true);
-                reload();
+                remoteUpdated.broadcast();
               },
               child: Text('启用'),
             ),),
             Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: ElevatedButton(
                 onPressed: () async {
                   await locator<AppDatabase>().remoteConfigRepository.deleteRemoteConfig(remoteConfig);
-                  reload();
+                  remoteUpdated.broadcast();
                 },
                 child: Text('删除')
             ),)

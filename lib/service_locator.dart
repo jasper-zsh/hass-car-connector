@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/services/remote.dart';
+import 'package:hass_car_connector/services/settings.dart';
 
 GetIt locator = GetIt.asNewInstance();
 
@@ -10,6 +11,9 @@ Future<void> setupLocator() async {
     return RemoteService(
       remoteConfigRepository: locator<AppDatabase>().remoteConfigRepository
     );
+  }, dependsOn: [AppDatabase]);
+  locator.registerSingletonWithDependencies(() {
+    return SettingsService(locator<AppDatabase>().settingsRepository);
   }, dependsOn: [AppDatabase]);
   await locator.allReady();
 }
