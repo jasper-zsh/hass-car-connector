@@ -6,7 +6,7 @@ abstract class SensorConfigRepository {
   @Query('SELECT * FROM SensorConfig')
   Future<List<SensorConfig>> findAll();
 
-  @Query('SELECT * FROM SensorConfig WHERE enabled = true')
+  @Query('SELECT * FROM SensorConfig WHERE enabled = 1')
   Future<List<SensorConfig>> findEnabled();
 
   @insert

@@ -12,7 +12,7 @@ abstract class RemoteConfigRepository {
   @Query('SELECT * FROM RemoteConfig')
   Future<List<RemoteConfig>> findAll();
 
-  @Query('SELECT * FROM RemoteConfig WHERE enabled = true')
+  @Query('SELECT * FROM RemoteConfig WHERE enabled = 1')
   Future<List<RemoteConfig>> findEnabled();
 
   @Query('UPDATE RemoteConfig SET enabled = :enabled WHERE id = :id')
