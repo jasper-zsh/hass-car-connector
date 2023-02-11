@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/background.dart';
+import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
@@ -111,7 +112,9 @@ class _MyHomePageState extends State<MyHomePage> {
           switch (currentTab) {
             case 0:
               Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return RemoteConfigForm();
+                return RemoteConfigForm(
+                  remoteConfig: RemoteConfig(),
+                );
               }));
           }
         },

@@ -45,6 +45,8 @@ class ReporterService {
   ServiceInstance service;
   RemoteService remoteService;
 
+  Timer? periodicTimer;
+
   ReporterService({
     required this.remoteService,
     required this.service
@@ -56,10 +58,9 @@ class ReporterService {
 
   Future<void> reload() async {
     log('reloading reporter service...');
-    for (var remote in remotes) {
-      await remote.stop();
-    }
+    await stop();
     await init();
+    start();
     log('reporting service reloaded.');
   }
 
@@ -87,6 +88,7 @@ class ReporterService {
   }
 
   void start() {
+    if (periodicTimer != null) return;
     Timer.periodic(Duration(seconds: 10), (timer) async {
       var data = List<SensorData>.empty(growable: true);
       for (var sensor in sensors) {
@@ -96,5 +98,14 @@ class ReporterService {
         remote.reportSensorDatas(data);
       }
     });
+  }
+
+  Future<void> stop() async {
+    if (periodicTimer == null) return;
+    periodicTimer!.cancel();
+    periodicTimer = null;
+    for (var remote in remotes) {
+      await remote.stop();
+    }
   }
 }

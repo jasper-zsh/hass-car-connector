@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'sensor.g.dart';
@@ -33,6 +34,7 @@ class DiscoveryData {
 }
 
 abstract class Sensor {
+  Future<void> init(SensorConfig sensorConfig);
   Future<List<SensorData>> read();
 }
 

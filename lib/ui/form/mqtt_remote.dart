@@ -7,11 +7,10 @@ import 'package:hass_car_connector/remote/mqtt.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
 
 class MqttRemoteConfigForm extends StatefulWidget {
-  final Event saveEvent;
+  final Event<SaveEventArgs> saveEvent;
   final Map<String, dynamic>? config;
-  final ConfigCallback? configCallback;
 
-  const MqttRemoteConfigForm({super.key, required this.saveEvent, this.configCallback, this.config});
+  const MqttRemoteConfigForm({super.key, required this.saveEvent, this.config});
 
   @override
   State<StatefulWidget> createState() {
@@ -37,11 +36,12 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
     widget.saveEvent.unsubscribe(onSave);
   }
 
-  onSave(EventArgs) {
+  onSave(SaveEventArgs? args) {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      if (widget.configCallback != null) {
-        widget.configCallback!(config.toJson());
+
+      if (args?.configCallback != null) {
+        args!.configCallback(config.toJson());
       }
     } else {
       throw Exception('validate failed');
@@ -62,6 +62,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
             return 'Please select scheme';
           }
         },
+        value: config.scheme,
         onSaved: (value) {
           config.scheme = value;
         },
@@ -75,6 +76,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
             border: UnderlineInputBorder(),
             labelText: "Host"
         ),
+        initialValue: config.host,
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Please input host';
@@ -89,6 +91,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
             border: UnderlineInputBorder(),
             labelText: "Port"
         ),
+        initialValue: config.port.toString(),
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Please input port';
@@ -103,6 +106,12 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
           border: UnderlineInputBorder(),
           labelText: "Path",
         ),
+        initialValue: config.path,
+        validator: (value) {
+          if (value != null && value.isNotEmpty && !value.startsWith('/')) {
+            return 'Path must be empty or starts with /';
+          }
+        },
         onSaved: (value) {
           config.path = value;
         },
@@ -112,6 +121,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
             border: UnderlineInputBorder(),
             labelText: "Username"
         ),
+        initialValue: config.username,
         onSaved: (value) {
           config.username = value;
         },
@@ -119,8 +129,12 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
       TextFormField(
         decoration: const InputDecoration(
             border: UnderlineInputBorder(),
-            labelText: "Password"
+            labelText: "Password",
         ),
+        obscureText: true,
+        enableIMEPersonalizedLearning: false,
+        enableSuggestions: false,
+        initialValue: config.password,
         onSaved: (value) {
           config.password = value;
         },

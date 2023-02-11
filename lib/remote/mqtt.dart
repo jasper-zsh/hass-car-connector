@@ -62,7 +62,6 @@ class MqttRemote implements Remote, Discovery {
       client.useWebSocket = true;
     }
     client.port = config.port!;
-    client.autoReconnect = true;
     client.onConnected = onConnected;
     client.onDisconnected = onDisconnected;
   }
@@ -70,18 +69,20 @@ class MqttRemote implements Remote, Discovery {
   @override
   Future<void> start() async {
     await client.connect(config.username, config.password);
+    client.autoReconnect = true;
   }
 
   @override
   Future<void> stop() async {
+    client.autoReconnect = false;
     client.disconnect();
   }
 
   void onConnected() {
-    log('MQTT remote connected');
+    log('[$hashCode]MQTT remote connected');
   }
   void onDisconnected() {
-    log('MQTT remote disconnected');
+    log('[$hashCode]MQTT remote disconnected');
   }
 
   @override

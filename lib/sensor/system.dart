@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/entities/settings.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/settings.dart';
@@ -71,5 +72,10 @@ class SystemSensor implements Sensor, Discoverable {
         }
       ),
     ];
+  }
+
+  @override
+  Future<void> init(SensorConfig sensorConfig) async {
+
   }
 }

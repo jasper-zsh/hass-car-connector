@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:hass_car_connector/database.dart';
+import 'package:hass_car_connector/migrations/v1_v2.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/services/settings.dart';
 
@@ -20,5 +21,8 @@ Future<void> setupLocator() async {
 
 Future<AppDatabase> dbFactory() async {
   final builder = $FloorAppDatabase.databaseBuilder('hass_car.db');
+  builder.addMigrations([
+    v1tov2,
+  ]);
   return await builder.build();
 }

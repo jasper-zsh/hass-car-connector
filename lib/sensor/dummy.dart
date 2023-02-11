@@ -1,3 +1,4 @@
+import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
 class DummySensor implements Sensor, Discoverable {
@@ -21,5 +22,10 @@ class DummySensor implements Sensor, Discoverable {
         }
       )
     ];
+  }
+
+  @override
+  Future<void> init(SensorConfig sensorConfig) async {
+
   }
 }

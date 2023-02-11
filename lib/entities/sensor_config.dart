@@ -1,19 +1,19 @@
 import 'package:floor/floor.dart';
 
 @entity
-class RemoteConfig {
+class SensorConfig {
   @PrimaryKey(autoGenerate: true)
   int? id;
-  String name;
   String type;
+  String? name;
   String config;
   bool enabled;
 
-  RemoteConfig({
+  SensorConfig({
     this.id,
-    this.name = "",
-    this.type = "",
-    this.config = "",
+    this.type = '',
+    this.name,
+    this.config = '',
     this.enabled = false
   });
 }

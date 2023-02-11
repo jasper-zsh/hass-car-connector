@@ -5,6 +5,8 @@ import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
+import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
+import 'package:hass_car_connector/ui/remote_config_form.dart';
 
 class RemoteConfigListPage extends StatefulWidget {
   @override
@@ -16,6 +18,7 @@ class RemoteConfigListPage extends StatefulWidget {
 
 class RemoteConfigListPageState extends State<RemoteConfigListPage> {
   Future<List<RemoteConfig>>? listFuture;
+  Event<SaveEventArgs> saveEvent = Event();
 
   @override
   void initState() {
@@ -68,9 +71,9 @@ class RemoteConfigListPageState extends State<RemoteConfigListPage> {
             Text(remoteConfig.name)
           ],
         )),
-        Row(
+        ButtonBar(
           children: [
-            Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: remoteConfig.enabled ? ElevatedButton(
+            remoteConfig.enabled ? ElevatedButton(
               onPressed: () async {
                 await locator<AppDatabase>().remoteConfigRepository.setEnabledById(remoteConfig.id!, false);
                 remoteUpdated.broadcast();
@@ -82,14 +85,21 @@ class RemoteConfigListPageState extends State<RemoteConfigListPage> {
                 remoteUpdated.broadcast();
               },
               child: Text('启用'),
-            ),),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: ElevatedButton(
+            ),
+            ElevatedButton(
                 onPressed: () async {
                   await locator<AppDatabase>().remoteConfigRepository.deleteRemoteConfig(remoteConfig);
                   remoteUpdated.broadcast();
                 },
                 child: Text('删除')
-            ),)
+            ),
+            ElevatedButton(onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return RemoteConfigForm(
+                  remoteConfig: remoteConfig,
+                );
+              }));
+            }, child: Text('编辑'))
           ],
         )
       ],
