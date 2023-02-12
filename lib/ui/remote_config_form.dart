@@ -35,13 +35,13 @@ class RemoteConfigFormState extends State<RemoteConfigForm> {
   final _formKey = GlobalKey<FormState>();
 
   RemoteConfig remoteConfig;
-  late Map<String, dynamic> config;
+  Map<String, dynamic> config;
   late String name;
   bool? testPassed;
   bool testing = false;
 
-  RemoteConfigFormState(this.remoteConfig) {
-    if (remoteConfig.config != null) {
+  RemoteConfigFormState(this.remoteConfig): config = {} {
+    if (remoteConfig.config.isNotEmpty) {
       config = jsonDecode(remoteConfig.config);
     }
   }

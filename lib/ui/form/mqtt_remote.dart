@@ -91,7 +91,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
             border: UnderlineInputBorder(),
             labelText: "Port"
         ),
-        initialValue: config.port.toString(),
+        initialValue: config.port?.toString(),
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Please input port';

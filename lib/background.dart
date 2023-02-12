@@ -8,6 +8,7 @@ import 'package:hass_car_connector/remote/mqtt.dart';
 import 'package:hass_car_connector/remote/remote.dart';
 import 'package:hass_car_connector/repositories/remote_config.dart';
 import 'package:hass_car_connector/sensor/dummy.dart';
+import 'package:hass_car_connector/sensor/elm327.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:hass_car_connector/sensor/system.dart';
 import 'package:hass_car_connector/service_locator.dart';
@@ -73,6 +74,7 @@ class ReporterService {
     var sensor = DummySensor();
     sensors.add(sensor);
     sensors.add(SystemSensor());
+    sensors.add(Elm327Sensor());
 
     for (var remote in remotes) {
       if (remote is Discovery) {
