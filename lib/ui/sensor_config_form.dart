@@ -5,10 +5,12 @@ import 'package:event/event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/database.dart';
-import 'package:hass_car_connector/entities/remote_config.dart';
+import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/remote/mqtt.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
+import 'package:hass_car_connector/services/sensor.dart';
+import 'package:hass_car_connector/ui/form/elm327_sensor.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 
 typedef void ConfigCallback(Map<String, dynamic> config);
@@ -19,30 +21,30 @@ class SaveEventArgs extends EventArgs {
   SaveEventArgs(this.configCallback);
 }
 
-class RemoteConfigForm extends StatefulWidget {
-  RemoteConfig remoteConfig;
+class SensorConfigForm extends StatefulWidget {
+  SensorConfig sensorConfig;
 
-  RemoteConfigForm({super.key, required this.remoteConfig});
+  SensorConfigForm({super.key, required this.sensorConfig});
 
   @override
   State<StatefulWidget> createState() {
-    return RemoteConfigFormState(remoteConfig);
+    return SensorConfigFormState(sensorConfig);
   }
 }
 
-class RemoteConfigFormState extends State<RemoteConfigForm> {
+class SensorConfigFormState extends State<SensorConfigForm> {
   final saveEvent = Event<SaveEventArgs>();
   final _formKey = GlobalKey<FormState>();
 
-  RemoteConfig remoteConfig;
+  SensorConfig sensorConfig;
   Map<String, dynamic> config;
   late String name;
   bool? testPassed;
   bool testing = false;
 
-  RemoteConfigFormState(this.remoteConfig): config = {} {
-    if (remoteConfig.config.isNotEmpty) {
-      config = jsonDecode(remoteConfig.config);
+  SensorConfigFormState(this.sensorConfig): config = {} {
+    if (sensorConfig.config.isNotEmpty) {
+      config = jsonDecode(sensorConfig.config);
     }
   }
 
@@ -100,13 +102,13 @@ class RemoteConfigFormState extends State<RemoteConfigForm> {
               try {
                 saveEvent.broadcast(SaveEventArgs((config) async {
                   this.config = config;
-                  remoteConfig.config = jsonEncode(config);
-                  remoteConfig.type = 'mqtt';
+                  sensorConfig.config = jsonEncode(config);
+                  sensorConfig.type = 'mqtt';
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
 
-                    remoteConfig.name = name;
-                    await locator<RemoteService>().saveRemoteConfig(remoteConfig);
+                    sensorConfig.name = name;
+                    await locator<SensorService>().saveSensorConfig(sensorConfig);
                     remoteUpdated.broadcast();
                     Navigator.pop(context);
                   }
@@ -132,23 +134,44 @@ class RemoteConfigFormState extends State<RemoteConfigForm> {
                           border: UnderlineInputBorder(),
                           labelText: 'Name'
                       ),
-                      initialValue: remoteConfig.name,
+                      initialValue: sensorConfig.name,
                       onSaved: (value) {
                         setState(() {
                           name = value!;
                         });
                       },
+                    ),
+                    DropdownButtonFormField(
+                      decoration: InputDecoration(
+                        border: UnderlineInputBorder()
+                      ),
+                      items: [
+                        DropdownMenuItem(child: Text('ELM327'), value: 'elm327',),
+                        DropdownMenuItem(child: Text('System'), value: 'system',),
+                        DropdownMenuItem(child: Text('Dummy'), value: 'dummy',)
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          sensorConfig.type = value!;
+                        });
+                      }
                     )
                   ],
                 )
             ),
-            MqttRemoteConfigForm(
-              saveEvent: saveEvent,
-              config: config,
-            )
+            _buildRemoteConfigForm(context)
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildRemoteConfigForm(BuildContext context) {
+    switch (sensorConfig.type) {
+      case 'elm327':
+        return Elm327SensorConfigForm(config: config,);
+      default:
+        return Container();
+    }
   }
 }

@@ -74,7 +74,9 @@ class ReporterService {
     var sensor = DummySensor();
     sensors.add(sensor);
     sensors.add(SystemSensor());
-    sensors.add(Elm327Sensor());
+    sensors.add(Elm327Sensor(
+      backgroundService: service,
+    ));
 
     for (var remote in remotes) {
       if (remote is Discovery) {

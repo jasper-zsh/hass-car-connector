@@ -25,14 +25,14 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
   MqttRemoteConfigFormState(this.config);
 
   @override
-  void initState() {
-    super.initState();
+  void activate() {
+    super.activate();
     widget.saveEvent.subscribe(onSave);
   }
 
   @override
-  void dispose() {
-    super.dispose();
+  void deactivate() {
+    super.deactivate();
     widget.saveEvent.unsubscribe(onSave);
   }
 
@@ -142,7 +142,8 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
     ];
     return Form(
       key: _formKey,
-      child: ListView.builder(itemBuilder: (context, index) => fields[index], itemCount: fields.length,),
+      // child: ListView.builder(itemBuilder: (context, index) => fields[index], itemCount: fields.length,),
+      child: Column(children: fields,),
     );
   }
 }

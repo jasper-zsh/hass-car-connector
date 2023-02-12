@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/background.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
+import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
 import 'package:hass_car_connector/ui/remote_config_list.dart';
+import 'package:hass_car_connector/ui/sensor_config_form.dart';
+import 'package:hass_car_connector/ui/sensor_config_list.dart';
 import 'package:hass_car_connector/ui/settings.dart';
 
 void main() async {
@@ -84,6 +87,8 @@ class _MyHomePageState extends State<MyHomePage> {
           switch (index) {
             case 0:
               return RemoteConfigListPage();
+            case 1:
+              return SensorConfigListPage();
             case 2:
               return SettingsPage();
             default:
@@ -116,6 +121,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   remoteConfig: RemoteConfig(),
                 );
               }));
+              break;
+            case 1:
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return SensorConfigForm(sensorConfig: SensorConfig());
+              }));
+              break;
           }
         },
         tooltip: 'Increment',
