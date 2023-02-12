@@ -13,6 +13,7 @@ import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:hass_car_connector/sensor/system.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
+import 'package:hass_car_connector/services/sensor.dart';
 
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
@@ -33,6 +34,7 @@ Future<void> onStart(ServiceInstance service) async {
   await setupLocator();
   var reporter = ReporterService(
     service: service,
+    sensorService: locator<SensorService>(),
     remoteService: locator<RemoteService>()
   );
   await reporter.init();
@@ -45,11 +47,13 @@ class ReporterService {
 
   ServiceInstance service;
   RemoteService remoteService;
+  SensorService sensorService;
 
   Timer? periodicTimer;
 
   ReporterService({
     required this.remoteService,
+    required this.sensorService,
     required this.service
   }) {
     service.on('reload').listen((event) {
@@ -70,13 +74,10 @@ class ReporterService {
     for (var remote in remotes) {
       await remote.start();
     }
-
-    var sensor = DummySensor();
-    sensors.add(sensor);
-    sensors.add(SystemSensor());
-    sensors.add(Elm327Sensor(
-      backgroundService: service,
-    ));
+    sensors = await sensorService.buildAllEnabledSensors(service);
+    for (var sensor in sensors) {
+      await sensor.start();
+    }
 
     for (var remote in remotes) {
       if (remote is Discovery) {
@@ -110,6 +111,9 @@ class ReporterService {
     periodicTimer = null;
     for (var remote in remotes) {
       await remote.stop();
+    }
+    for (var sensor in sensors) {
+      await sensor.stop();
     }
   }
 }

@@ -9,7 +9,7 @@ import 'package:hass_car_connector/remote/remote.dart';
 import 'package:hass_car_connector/repositories/remote_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 
-typedef Remote RemoteFactory();
+typedef RemoteFactory = Remote Function();
 
 var remoteFactorys = <String, RemoteFactory>{
   'mqtt': () => MqttRemote()
@@ -44,5 +44,6 @@ class RemoteService {
     } else {
       await remoteConfigRepository.updateRemoteConfig(remoteConfig);
     }
+    remoteUpdated.broadcast();
   }
 }

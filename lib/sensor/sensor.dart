@@ -34,8 +34,10 @@ class DiscoveryData {
 }
 
 abstract class Sensor {
-  Future<void> init(SensorConfig sensorConfig);
+  Future<void> init(Map<String, dynamic> config);
   Future<List<SensorData>> read();
+  Future<void> start();
+  Future<void> stop();
 }
 
 abstract class Discoverable {

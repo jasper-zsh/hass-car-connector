@@ -5,6 +5,7 @@ import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
+import 'package:hass_car_connector/services/sensor.dart';
 import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
 import 'package:hass_car_connector/ui/remote_config_list.dart';
@@ -17,6 +18,9 @@ void main() async {
   await setupLocator();
   await initializeService();
   remoteUpdated.subscribe((args) {
+    FlutterBackgroundService().invoke('reload');
+  });
+  sensorUpdated.subscribe((args) {
     FlutterBackgroundService().invoke('reload');
   });
   runApp(const MyApp());

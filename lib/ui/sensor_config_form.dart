@@ -103,13 +103,11 @@ class SensorConfigFormState extends State<SensorConfigForm> {
                 saveEvent.broadcast(SaveEventArgs((config) async {
                   this.config = config;
                   sensorConfig.config = jsonEncode(config);
-                  sensorConfig.type = 'mqtt';
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
 
                     sensorConfig.name = name;
                     await locator<SensorService>().saveSensorConfig(sensorConfig);
-                    remoteUpdated.broadcast();
                     Navigator.pop(context);
                   }
                 },
@@ -169,7 +167,7 @@ class SensorConfigFormState extends State<SensorConfigForm> {
   Widget _buildRemoteConfigForm(BuildContext context) {
     switch (sensorConfig.type) {
       case 'elm327':
-        return Elm327SensorConfigForm(config: config,);
+        return Elm327SensorConfigForm(config: config, saveEvent: saveEvent);
       default:
         return Container();
     }

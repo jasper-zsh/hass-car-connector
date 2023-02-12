@@ -107,7 +107,6 @@ class RemoteConfigFormState extends State<RemoteConfigForm> {
 
                     remoteConfig.name = name;
                     await locator<RemoteService>().saveRemoteConfig(remoteConfig);
-                    remoteUpdated.broadcast();
                     Navigator.pop(context);
                   }
                 },

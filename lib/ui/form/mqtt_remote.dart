@@ -25,14 +25,21 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
   MqttRemoteConfigFormState(this.config);
 
   @override
-  void activate() {
-    super.activate();
+  void initState() {
+    super.initState();
     widget.saveEvent.subscribe(onSave);
   }
 
   @override
-  void deactivate() {
-    super.deactivate();
+  void didUpdateWidget(covariant MqttRemoteConfigForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    oldWidget.saveEvent.unsubscribe(onSave);
+    widget.saveEvent.subscribe(onSave);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
     widget.saveEvent.unsubscribe(onSave);
   }
 

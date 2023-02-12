@@ -25,7 +25,17 @@ class DummySensor implements Sensor, Discoverable {
   }
 
   @override
-  Future<void> init(SensorConfig sensorConfig) async {
+  Future<void> init(Map<String, dynamic> config) async {
+
+  }
+
+  @override
+  Future<void> start() async {
+
+  }
+
+  @override
+  Future<void> stop() async {
 
   }
 }
