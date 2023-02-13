@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:hass_car_connector/ui/logs.dart';
 import 'package:hass_car_connector/background.dart';
 import 'package:hass_car_connector/entities/remote_config.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/services/sensor.dart';
-import 'package:hass_car_connector/ui/form/mqtt_remote.dart';
 import 'package:hass_car_connector/ui/remote_config_form.dart';
 import 'package:hass_car_connector/ui/remote_config_list.dart';
 import 'package:hass_car_connector/ui/sensor_config_form.dart';
@@ -15,7 +15,7 @@ import 'package:hass_car_connector/ui/settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await setupLocator();
+  await setupLocator(null);
   await initializeService();
   remoteUpdated.subscribe((args) {
     FlutterBackgroundService().invoke('reload');
@@ -78,6 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const navigateBarItems = [
       BottomNavigationBarItem(icon: Icon(Icons.settings_remote), label: 'Remotes'),
       BottomNavigationBarItem(icon: Icon(Icons.sensors), label: 'Sensors'),
+      BottomNavigationBarItem(icon: Icon(Icons.file_open), label: "Logs"),
       BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings')
     ];
     return Scaffold(
@@ -94,6 +95,8 @@ class _MyHomePageState extends State<MyHomePage> {
             case 1:
               return SensorConfigListPage();
             case 2:
+              return LogsPage();
+            case 3:
               return SettingsPage();
             default:
               return const Center(

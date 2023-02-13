@@ -7,6 +7,7 @@ import 'package:hass_car_connector/entities/settings.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/settings.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
@@ -29,6 +30,8 @@ class LocationData {
 }
 
 class SystemSensor implements Sensor, Discoverable {
+  final Logger logger = locator<Logger>();
+
   @override
   Future<List<SensorData>> read() async {
     var permission = await Geolocator.checkPermission();
@@ -43,7 +46,7 @@ class SystemSensor implements Sensor, Discoverable {
         timeLimit: const Duration(seconds: 10)
       );
     } catch (e) {
-      log('Get location timed out');
+      logger.w('Get location timed out');
       location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
     }
     if (location != null) {

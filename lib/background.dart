@@ -8,6 +8,7 @@ import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/services/sensor.dart';
+import 'package:logger/logger.dart';
 
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
@@ -25,7 +26,7 @@ Future<void> initializeService() async {
 
 @pragma('vm:entry-point')
 Future<void> onStart(ServiceInstance service) async {
-  await setupLocator();
+  await setupLocator(service);
   var reporter = ReporterService(
     service: service,
     sensorService: locator<SensorService>(),
@@ -36,6 +37,8 @@ Future<void> onStart(ServiceInstance service) async {
 }
 
 class ReporterService {
+  final Logger logger;
+
   List<Remote> remotes = List.empty(growable: true);
   List<Sensor> sensors = List.empty(growable: true);
 
@@ -49,18 +52,18 @@ class ReporterService {
     required this.remoteService,
     required this.sensorService,
     required this.service
-  }) {
+  }): logger = locator<Logger>() {
     service.on('reload').listen((event) {
       reload();
     });
   }
 
   Future<void> reload() async {
-    log('reloading reporter service...');
+    logger.i('reloading reporter service...');
     await stop();
     await init();
     start();
-    log('reporting service reloaded.');
+    logger.i('reporting service reloaded.');
   }
 
   Future<void> init() async {
