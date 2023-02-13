@@ -113,6 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentTab,
         items: navigateBarItems,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _controller.animateToPage(index, duration: Duration(microseconds: 300), curve: Curves.easeIn);
