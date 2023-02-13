@@ -3,14 +3,8 @@ import 'dart:developer';
 import 'dart:ui';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:hass_car_connector/database.dart';
-import 'package:hass_car_connector/remote/mqtt.dart';
 import 'package:hass_car_connector/remote/remote.dart';
-import 'package:hass_car_connector/repositories/remote_config.dart';
-import 'package:hass_car_connector/sensor/dummy.dart';
-import 'package:hass_car_connector/sensor/elm327.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
-import 'package:hass_car_connector/sensor/system.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/services/sensor.dart';
@@ -21,7 +15,7 @@ Future<void> initializeService() async {
   service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
-      isForegroundMode: false,
+      isForegroundMode: true,
       autoStart: true,
       autoStartOnBoot: true
     ),

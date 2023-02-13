@@ -41,6 +41,7 @@ class SensorConfigFormState extends State<SensorConfigForm> {
   late String name;
   bool? testPassed;
   bool testing = false;
+  TextEditingController? _nameController;
 
   SensorConfigFormState(this.sensorConfig): config = {} {
     if (sensorConfig.config.isNotEmpty) {
@@ -51,6 +52,13 @@ class SensorConfigFormState extends State<SensorConfigForm> {
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _nameController?.dispose();
   }
 
   Widget _buildTestButton(BuildContext context) {
@@ -98,20 +106,19 @@ class SensorConfigFormState extends State<SensorConfigForm> {
           _buildTestButton(context),
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: () {
+            onPressed: () async {
               try {
                 saveEvent.broadcast(SaveEventArgs((config) async {
                   this.config = config;
                   sensorConfig.config = jsonEncode(config);
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
+                }));
 
-                    sensorConfig.name = name;
-                    await locator<SensorService>().saveSensorConfig(sensorConfig);
-                    Navigator.pop(context);
-                  }
-                },
-                ));
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+
+                  await locator<SensorService>().saveSensorConfig(sensorConfig);
+                  Navigator.pop(context);
+                }
               } catch (e) {
                 log(e.toString());
               }
@@ -135,7 +142,7 @@ class SensorConfigFormState extends State<SensorConfigForm> {
                       initialValue: sensorConfig.name,
                       onSaved: (value) {
                         setState(() {
-                          name = value!;
+                          sensorConfig.name = value!;
                         });
                       },
                     ),
@@ -151,6 +158,7 @@ class SensorConfigFormState extends State<SensorConfigForm> {
                       onChanged: (value) {
                         setState(() {
                           sensorConfig.type = value!;
+                          config = {};
                         });
                       }
                     )
