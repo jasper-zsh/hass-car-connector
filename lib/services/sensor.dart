@@ -9,6 +9,8 @@ import 'package:hass_car_connector/sensor/dummy.dart';
 import 'package:hass_car_connector/sensor/elm327.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:hass_car_connector/sensor/system.dart';
+import 'package:hass_car_connector/service_locator.dart';
+import 'package:logger/logger.dart';
 
 var sensorUpdated = Event();
 
@@ -23,26 +25,31 @@ var sensorFactories = <String, SensorFactory>{
 };
 
 class SensorService {
+  final logger = locator<Logger>();
   SensorConfigRepository sensorConfigRepository;
 
   SensorService({required this.sensorConfigRepository});
 
-  Future<List<Sensor>> buildAllEnabledSensors(ServiceInstance? serviceInstance) async {
-    var sensors = <Sensor>[];
+  Sensor buildSensor(SensorConfig sensorConfig, ServiceInstance? serviceInstance) {
+    var factory = sensorFactories[sensorConfig.type];
+    if (factory == null) {
+      logger.e('Sensor factory ${sensorConfig.type} not registered.');
+      throw Exception('Sensor factory ${sensorConfig.type} not registered.');
+    }
+    return factory(serviceInstance);
+  }
+
+  Future<Map<int, Sensor>> buildAllEnabledSensors(ServiceInstance? serviceInstance) async {
+    var sensors = <int, Sensor>{};
     var configs = await sensorConfigRepository.findEnabled();
     for (var config in configs) {
-      var factory = sensorFactories[config.type];
-      if (factory == null) {
-        log('Sensor factory ${config.type} not registered.');
-        continue;
-      }
-      var sensor = factory(serviceInstance);
+      var sensor = buildSensor(config, serviceInstance);
       Map<String, dynamic> c = {};
       if (config.config.isNotEmpty) {
         c = jsonDecode(config.config);
       }
       await sensor.init(c);
-      sensors.add(sensor);
+      sensors[config.id!] = sensor;
     }
     return sensors;
   }

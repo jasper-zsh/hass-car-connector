@@ -71,9 +71,11 @@ class ReporterService {
     for (var remote in remotes) {
       await remote.start();
     }
-    sensors = await sensorService.buildAllEnabledSensors(service);
-    for (var sensor in sensors) {
-      await sensor.start();
+    var sensorsMap = await sensorService.buildAllEnabledSensors(service);
+    for (var entry in sensorsMap.entries) {
+      entry.value.attach(entry.key, service);
+      await entry.value.start();
+      sensors.add(entry.value);
     }
 
     for (var remote in remotes) {

@@ -24,7 +24,7 @@ class Elm327SensorConfig {
   Map<String, dynamic> toJson() => _$Elm327SensorConfigToJson(this);
 }
 
-class Elm327Sensor implements Sensor {
+class Elm327Sensor extends Sensor {
   final ble = FlutterReactiveBle();
   ServiceInstance? backgroundService;
   late Elm327SensorConfig config;

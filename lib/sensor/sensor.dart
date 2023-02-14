@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
+import 'package:hass_car_connector/service_locator.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:logger/logger.dart';
 
 part 'sensor.g.dart';
 
@@ -33,7 +37,48 @@ class DiscoveryData {
   });
 }
 
-abstract class Sensor {
+abstract class Sensor<S> {
+  final logger = locator<Logger>();
+  ServiceInstance? serviceInstance;
+  int? id;
+  S? status;
+
+  void attach(int id, ServiceInstance? serviceInstance) {
+    this.serviceInstance = serviceInstance;
+    this.id = id;
+    if (serviceInstance != null) {
+      serviceInstance.on('sensors/$id/getStatus').listen((event) {
+        sendStatusInService();
+      });
+    }
+  }
+
+  Stream<Map<String, dynamic>> getStatusStream() {
+    var stream = FlutterBackgroundService().on("sensors/$id/status").map((event) {
+      logger.i("Got sensor status $event");
+      return jsonDecode(event!['status']) as Map<String, dynamic>;
+    });
+    getStatusInUI();
+    return stream;
+  }
+
+  void getStatusInUI() {
+    FlutterBackgroundService().invoke('sensors/$id/getStatus');
+  }
+
+  void sendStatusInService() {
+    serviceInstance?.invoke("sensors/$id/status", {
+      'status': jsonEncode(status)
+    });
+  }
+
+  void setStatus(void Function() f) {
+    f();
+    if (serviceInstance != null && status != null) {
+      sendStatusInService();
+    }
+  }
+
   Future<void> init(Map<String, dynamic> config);
   Future<List<SensorData>> read();
   Future<void> start();

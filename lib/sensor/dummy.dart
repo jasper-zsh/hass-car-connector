@@ -1,7 +1,8 @@
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
-class DummySensor implements Sensor, Discoverable {
+class DummySensor extends Sensor implements Discoverable {
   @override
   Future<List<SensorData>> read() async {
     return [

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/entities/settings.dart';
@@ -29,8 +30,26 @@ class LocationData {
   Map<String, dynamic> toJson() => _$LocationDataToJson(this);
 }
 
-class SystemSensor implements Sensor, Discoverable {
+@JsonSerializable()
+class SystemSensorStatus {
+  String locationStatus;
+
+  SystemSensorStatus({
+    required this.locationStatus
+  });
+
+  factory SystemSensorStatus.fromJson(Map<String, dynamic> json) => _$SystemSensorStatusFromJson(json);
+  Map<String, dynamic> toJson() => _$SystemSensorStatusToJson(this);
+}
+
+class SystemSensor extends Sensor<SystemSensorStatus> implements Discoverable {
   final Logger logger = locator<Logger>();
+
+  SystemSensor() {
+    status = SystemSensorStatus(
+        locationStatus: 'unknown'
+    );
+  }
 
   @override
   Future<List<SensorData>> read() async {
@@ -45,9 +64,15 @@ class SystemSensor implements Sensor, Discoverable {
         forceAndroidLocationManager: true,
         timeLimit: const Duration(seconds: 10)
       );
+      setStatus(() {
+        status?.locationStatus = 'accurate';
+      });
     } catch (e) {
       logger.w('Get location timed out');
       location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
+      setStatus(() {
+        status?.locationStatus = 'last known';
+      });
     }
     if (location != null) {
       data.add(SensorData('location', jsonEncode(LocationData(
@@ -55,6 +80,10 @@ class SystemSensor implements Sensor, Discoverable {
         longitude: location.longitude,
         accuracy: location.accuracy,
       ))));
+    } else {
+      setStatus(() {
+        status?.locationStatus = 'no location';
+      });
     }
     return data;
   }

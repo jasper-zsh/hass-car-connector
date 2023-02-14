@@ -8,6 +8,7 @@ import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/remote.dart';
 import 'package:hass_car_connector/services/sensor.dart';
 import 'package:hass_car_connector/ui/sensor_config_form.dart';
+import 'package:hass_car_connector/ui/sensor_status.dart';
 
 class SensorConfigListPage extends StatefulWidget {
   @override
@@ -74,6 +75,11 @@ class SensorConfigListPageState extends State<SensorConfigListPage> {
         )),
         ButtonBar(
           children: [
+            ElevatedButton(onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return SensorStatusPage(sensorConfig);
+              }));
+            }, child: Text('状态')),
             sensorConfig.enabled ? ElevatedButton(
               onPressed: () async {
                 await locator<AppDatabase>().sensorConfigRepository.setEnabledById(sensorConfig.id!, false);
