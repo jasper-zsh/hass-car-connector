@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -42,68 +43,14 @@ class SystemSensorStatus {
   Map<String, dynamic> toJson() => _$SystemSensorStatusToJson(this);
 }
 
-class SystemSensor extends Sensor<SystemSensorStatus> implements Discoverable {
+class SystemSensor extends DiscoverableSensor<SystemSensorStatus> {
   final Logger logger = locator<Logger>();
+  Timer? timer;
 
   SystemSensor() {
     status = SystemSensorStatus(
         locationStatus: 'unknown'
     );
-  }
-
-  @override
-  Future<List<SensorData>> read() async {
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      return List.empty();
-    }
-    var data = List<SensorData>.empty(growable: true);
-    Position? location;
-    try {
-      location = await Geolocator.getCurrentPosition(
-        forceAndroidLocationManager: true,
-        timeLimit: const Duration(seconds: 10)
-      );
-      setStatus(() {
-        status?.locationStatus = 'accurate';
-      });
-    } catch (e) {
-      logger.w('Get location timed out');
-      location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
-      setStatus(() {
-        status?.locationStatus = 'last known';
-      });
-    }
-    if (location != null) {
-      data.add(SensorData('location', jsonEncode(LocationData(
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy,
-      ))));
-    } else {
-      setStatus(() {
-        status?.locationStatus = 'no location';
-      });
-    }
-    return data;
-  }
-
-  @override
-  Future<List<DiscoveryData>> discovery() async {
-    var identifier = await locator<SettingsService>().readSetting(carIdentifier);
-    return [
-      DiscoveryData(
-        type: 'device_tracker',
-        objectId: 'location',
-        friendlyName: "Location",
-        overrideConfig: {
-          'mqtt': {
-            'state_topic': "hass_car/$identifier/location/state",
-            'json_attributes_topic': "hass_car/$identifier/location"
-          }
-        }
-      ),
-    ];
   }
 
   @override
@@ -113,11 +60,55 @@ class SystemSensor extends Sensor<SystemSensorStatus> implements Discoverable {
 
   @override
   Future<void> start() async {
-
+    var identifier = await locator<SettingsService>().readSetting(carIdentifier);
+    discoverySink.add(DiscoveryData(
+        type: 'device_tracker',
+        objectId: 'location',
+        friendlyName: "Location",
+        overrideConfig: {
+          'mqtt': {
+            'state_topic': "hass_car/$identifier/location/state",
+            'json_attributes_topic': "hass_car/$identifier/location"
+          }
+        }
+    ));
+    timer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        return;
+      }
+      Position? location;
+      try {
+        location = await Geolocator.getCurrentPosition(
+            forceAndroidLocationManager: true,
+            timeLimit: const Duration(seconds: 10)
+        );
+        setStatus(() {
+          status?.locationStatus = 'accurate';
+        });
+      } catch (e) {
+        logger.w('Get location timed out');
+        location = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
+        setStatus(() {
+          status?.locationStatus = 'last known';
+        });
+      }
+      if (location != null) {
+        dataSink.add(SensorData('location', jsonEncode(LocationData(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy,
+        ))));
+      } else {
+        setStatus(() {
+          status?.locationStatus = 'no location';
+        });
+      }
+    });
   }
 
   @override
   Future<void> stop() async {
-
+    timer?.cancel();
   }
 }

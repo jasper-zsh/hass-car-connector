@@ -42,6 +42,7 @@ abstract class Sensor<S> {
   ServiceInstance? serviceInstance;
   int? id;
   S? status;
+  StreamController<SensorData> dataStreamController = StreamController.broadcast();
 
   void attach(int id, ServiceInstance? serviceInstance) {
     this.serviceInstance = serviceInstance;
@@ -62,6 +63,14 @@ abstract class Sensor<S> {
     return stream;
   }
 
+  StreamSink<SensorData> get dataSink {
+    return dataStreamController.sink;
+  }
+
+  Stream<SensorData> get dataStream {
+    return dataStreamController.stream;
+  }
+
   void getStatusInUI() {
     FlutterBackgroundService().invoke('sensors/$id/getStatus');
   }
@@ -80,11 +89,27 @@ abstract class Sensor<S> {
   }
 
   Future<void> init(Map<String, dynamic> config);
-  Future<List<SensorData>> read();
   Future<void> start();
   Future<void> stop();
+
+  void destroy() {
+    dataStreamController.close();
+  }
 }
 
-abstract class Discoverable {
-  Future<List<DiscoveryData>> discovery();
+abstract class DiscoverableSensor<T> extends Sensor<T> {
+  StreamController<DiscoveryData> discoveryStreamController = StreamController.broadcast();
+
+  Stream<DiscoveryData> get discoveryStream {
+    return discoveryStreamController.stream;
+  }
+
+  StreamSink<DiscoveryData> get discoverySink {
+    return discoveryStreamController.sink;
+  }
+
+  void destroy() {
+    super.destroy();
+    discoveryStreamController.close();
+  }
 }

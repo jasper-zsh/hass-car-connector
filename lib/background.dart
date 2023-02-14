@@ -66,42 +66,44 @@ class ReporterService {
     logger.i('reporting service reloaded.');
   }
 
+  void clean() {
+    for (var remote in remotes) {
+      remote.destroy();
+    }
+    for (var sensor in sensors) {
+      sensor.destroy();
+    }
+  }
+
   Future<void> init() async {
+    clean();
     remotes = await remoteService.buildAllEnabledRemotes();
     for (var remote in remotes) {
-      await remote.start();
+      remote.listen();
     }
     var sensorsMap = await sensorService.buildAllEnabledSensors(service);
     for (var entry in sensorsMap.entries) {
       entry.value.attach(entry.key, service);
-      await entry.value.start();
       sensors.add(entry.value);
     }
 
     for (var remote in remotes) {
-      if (remote is Discovery) {
-        for (var sensor in sensors) {
-          if (sensor is Discoverable) {
-            await (remote as Discovery).discovery(
-              await (sensor as Discoverable).discovery()
-            );
-          }
+      for (var sensor in sensorsMap.values) {
+        remote.subscribe(sensor.dataStream);
+        if (remote is DiscoveryRemote && sensor is DiscoverableSensor) {
+          remote.subscribeDiscovery(sensor.discoveryStream);
         }
       }
     }
   }
 
-  void start() {
-    if (periodicTimer != null) return;
-    Timer.periodic(Duration(seconds: 10), (timer) async {
-      var data = List<SensorData>.empty(growable: true);
-      for (var sensor in sensors) {
-        data.addAll(await sensor.read());
-      }
-      for (var remote in remotes) {
-        remote.reportSensorDatas(data);
-      }
-    });
+  void start() async {
+    for (var remote in remotes) {
+      await remote.start();
+    }
+    for (var sensor in sensors) {
+      await sensor.start();
+    }
   }
 
   Future<void> stop() async {

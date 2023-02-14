@@ -12,6 +12,7 @@ import 'package:hass_car_connector/ui/remote_config_list.dart';
 import 'package:hass_car_connector/ui/sensor_config_form.dart';
 import 'package:hass_car_connector/ui/sensor_config_list.dart';
 import 'package:hass_car_connector/ui/settings.dart';
+import 'package:hass_car_connector/utils/utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,9 @@ void main() async {
   });
   sensorUpdated.subscribe((args) {
     FlutterBackgroundService().invoke('reload');
+  });
+  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    Utils.minimize();
   });
   runApp(const MyApp());
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -5,6 +6,7 @@ import 'package:hass_car_connector/entities/settings.dart';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:hass_car_connector/services/settings.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:logger/logger.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:hass_car_connector/remote/remote.dart';
@@ -45,10 +47,13 @@ class MqttSensorPayload {
   });
 }
 
-class MqttRemote implements Remote, Discovery {
+class MqttRemote extends DiscoveryRemote {
+  final logger = locator<Logger>();
+
   late MqttServerClient client;
   late MqttRemoteConfig config;
   late String identifier;
+  StreamSubscription<SensorData>? dataSubscription;
 
   @override
   Future<void> init(Map<String, dynamic> configMap) async {
@@ -73,49 +78,46 @@ class MqttRemote implements Remote, Discovery {
   }
 
   @override
+  Future<void> onData(SensorData data) async {
+    var payload = MqttSensorPayload(
+        topic: "hass_car/$identifier/${data.type}",
+        payload: data.data
+    );
+    var builder = MqttClientPayloadBuilder();
+    builder.addString(payload.payload);
+    client.publishMessage(payload.topic, MqttQos.exactlyOnce, builder.payload!);
+  }
+
+  @override
+  Future<void> onDiscovery(DiscoveryData discoveryData) async {
+    var topic = "homeassistant/${discoveryData.type}/$identifier/${discoveryData.objectId}/config";
+    var builder = MqttClientPayloadBuilder();
+    var baseConfig = <String, dynamic>{
+      'state_topic': "hass_car/${identifier}/${discoveryData.objectId}",
+      'name': "$identifier ${discoveryData.friendlyName}",
+      'unique_id': "${identifier}_${discoveryData.objectId}",
+      'object_id': '${identifier}_${discoveryData.objectId}',
+    };
+    baseConfig.addAll(discoveryData.config);
+    var override = discoveryData.overrideConfig['mqtt'];
+    if (override != null) {
+      baseConfig.addAll(override);
+    }
+    builder.addString(jsonEncode(baseConfig));
+    client.publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
+  }
+
+  @override
   Future<void> stop() async {
     client.autoReconnect = false;
     client.disconnect();
+    dataSubscription?.cancel();
   }
 
   void onConnected() {
-    log('[$hashCode]MQTT remote connected');
+    logger.i('[$hashCode]MQTT remote connected');
   }
   void onDisconnected() {
-    log('[$hashCode]MQTT remote disconnected');
-  }
-
-  @override
-  Future<void> reportSensorDatas(Iterable<SensorData> sensorDatas) async {
-    var payloads = sensorDatas.map((e) => MqttSensorPayload(
-      topic: "hass_car/$identifier/${e.type}",
-      payload: e.data
-    ));
-    for (var payload in payloads) {
-      var builder = MqttClientPayloadBuilder();
-      builder.addString(payload.payload);
-      client.publishMessage(payload.topic, MqttQos.exactlyOnce, builder.payload!);
-    }
-  }
-
-  @override
-  Future<void> discovery(Iterable<DiscoveryData> discoveryDatas) async {
-    for (var data in discoveryDatas) {
-      var topic = "homeassistant/${data.type}/$identifier/${data.objectId}/config";
-      var builder = MqttClientPayloadBuilder();
-      var baseConfig = <String, dynamic>{
-        'state_topic': "hass_car/${identifier}/${data.objectId}",
-        'name': "$identifier ${data.friendlyName}",
-        'unique_id': "${identifier}_${data.objectId}",
-        'object_id': '${identifier}_${data.objectId}',
-      };
-      baseConfig.addAll(data.config);
-      var override = data.overrideConfig['mqtt'];
-      if (override != null) {
-        baseConfig.addAll(override);
-      }
-      builder.addString(jsonEncode(baseConfig));
-      client.publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
-    }
+    logger.i('[$hashCode]MQTT remote disconnected');
   }
 }
