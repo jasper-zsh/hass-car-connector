@@ -18,12 +18,13 @@ class ServiceOutput extends LogOutput {
 }
 
 class UIStreamOutput extends LogOutput {
-  late StreamController<List<String>> _controller;
+  late StreamController<OutputEvent> _controller;
+  List<OutputEvent> buffer = List.empty(growable: true);
   bool _shouldForward = false;
   ServiceInstance? serviceInstance;
 
   UIStreamOutput(this.serviceInstance) {
-    _controller = StreamController<List<String>>.broadcast(
+    _controller = StreamController<OutputEvent>.broadcast(
       onListen: () {
         _shouldForward = _controller.hasListener;
       },
@@ -38,15 +39,25 @@ class UIStreamOutput extends LogOutput {
     }
   }
 
-  Stream<List<String>> get stream => _controller.stream;
+  StreamSubscription<OutputEvent> listen(void Function(OutputEvent logs) onLogs) {
+    var sub = _controller.stream.listen(onLogs);
+    for (var event in buffer) {
+      _controller.add(event);
+    }
+    return sub;
+  }
 
   @override
   void output(OutputEvent event) {
+    buffer.add(event);
+    if (buffer.length > 100) {
+      buffer.removeAt(0);
+    }
     if (!_shouldForward) {
       return;
     }
 
-    _controller.add(event.lines);
+    _controller.add(event);
   }
 
   @override

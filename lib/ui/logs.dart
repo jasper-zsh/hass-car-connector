@@ -13,16 +13,16 @@ class LogsPage extends StatefulWidget {
 }
 
 class LogsPageState extends State<LogsPage> {
-  late StreamSubscription<List<String>> subscription;
+  late StreamSubscription<OutputEvent> subscription;
   late ScrollController _scrollController;
 
-  List<List<String>> logs = List.empty(growable: true);
+  List<OutputEvent> logs = List.empty(growable: true);
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    subscription = locator<UIStreamOutput>().stream.listen(onLogs);
+    subscription = locator<UIStreamOutput>().listen(onLogs);
   }
 
   @override
@@ -31,7 +31,7 @@ class LogsPageState extends State<LogsPage> {
     subscription.cancel();
   }
 
-  void onLogs(List<String> log) {
+  void onLogs(OutputEvent log) {
     setState(() {
       logs.add(log);
       if (logs.length > 1000) {
@@ -49,7 +49,13 @@ class LogsPageState extends State<LogsPage> {
       controller: _scrollController,
       itemCount: logs.length,
       itemBuilder: (context, index) {
-        return Text(logs[index].join('\n'));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(logs[index].level.name),
+            Text(logs[index].lines.join('\n'))
+          ],
+        );
       },
     );
   }
