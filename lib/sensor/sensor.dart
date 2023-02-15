@@ -21,6 +21,7 @@ class SensorData {
   Map<String, dynamic> toJson() => _$SensorDataToJson(this);
 }
 
+@JsonSerializable()
 class DiscoveryData {
   String type;
   String objectId;
@@ -35,6 +36,9 @@ class DiscoveryData {
     this.config = const{},
     this.overrideConfig = const {}
   });
+
+  factory DiscoveryData.fromJson(Map<String, dynamic> json) => _$DiscoveryDataFromJson(json);
+  Map<String, dynamic> toJson() => _$DiscoveryDataToJson(this);
 }
 
 abstract class Sensor<S> {
@@ -42,16 +46,30 @@ abstract class Sensor<S> {
   ServiceInstance? serviceInstance;
   int? id;
   S? status;
-  StreamController<SensorData> dataStreamController = StreamController.broadcast();
+  Map<String, dynamic> configMap;
+  StreamSink<SensorData>? dataSink;
+  StreamSink<DiscoveryData>? discoverySink;
 
-  void attach(int id, ServiceInstance? serviceInstance) {
-    this.serviceInstance = serviceInstance;
-    this.id = id;
-    if (serviceInstance != null) {
-      serviceInstance.on('sensors/$id/getStatus').listen((event) {
-        sendStatusInService();
-      });
-    }
+  Sensor(this.configMap, this.id, this.serviceInstance);
+
+  Future<void> init({
+    StreamSink<SensorData>? dataSink,
+    StreamSink<DiscoveryData>? discoverySink
+  }) async {
+    this.dataSink = dataSink;
+    this.discoverySink = discoverySink;
+    serviceInstance?.on('sensors/$id/getStatus').listen((event) {
+      sendStatusInService();
+    });
+    await onInit(configMap);
+  }
+
+  Future<void> start() async {
+    await onStart();
+  }
+
+  Future<void> stop() async {
+    await onStop();
   }
 
   Stream<Map<String, dynamic>> getStatusStream() {
@@ -61,14 +79,6 @@ abstract class Sensor<S> {
     });
     getStatusInUI();
     return stream;
-  }
-
-  StreamSink<SensorData> get dataSink {
-    return dataStreamController.sink;
-  }
-
-  Stream<SensorData> get dataStream {
-    return dataStreamController.stream;
   }
 
   void getStatusInUI() {
@@ -88,28 +98,7 @@ abstract class Sensor<S> {
     }
   }
 
-  Future<void> init(Map<String, dynamic> config);
-  Future<void> start();
-  Future<void> stop();
-
-  void destroy() {
-    dataStreamController.close();
-  }
-}
-
-abstract class DiscoverableSensor<T> extends Sensor<T> {
-  StreamController<DiscoveryData> discoveryStreamController = StreamController.broadcast();
-
-  Stream<DiscoveryData> get discoveryStream {
-    return discoveryStreamController.stream;
-  }
-
-  StreamSink<DiscoveryData> get discoverySink {
-    return discoveryStreamController.sink;
-  }
-
-  void destroy() {
-    super.destroy();
-    discoveryStreamController.close();
-  }
+  Future<void> onInit(Map<String, dynamic> config);
+  Future<void> onStart();
+  Future<void> onStop();
 }

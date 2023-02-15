@@ -32,7 +32,12 @@ Future<void> setupLocator(ServiceInstance? serviceInstance) async {
       ]),
     printer: PrettyPrinter(
       colors: false,
-      lineLength: 80
+      methodCount: 0,
+      lineLength: 80,
+      noBoxingByDefault: true,
+      excludeBox: {
+        Level.error: false
+      }
     )
   ));
   await locator.allReady();

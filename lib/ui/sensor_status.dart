@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
@@ -11,7 +13,7 @@ class SensorStatusPage extends StatelessWidget {
 
   SensorStatusPage(this.sensorConfig) {
     sensor = locator<SensorService>().buildSensor(sensorConfig, null);
-    sensor.attach(sensorConfig.id!, null);
+    sensor.init();
   }
 
   @override

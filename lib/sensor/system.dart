@@ -43,25 +43,25 @@ class SystemSensorStatus {
   Map<String, dynamic> toJson() => _$SystemSensorStatusToJson(this);
 }
 
-class SystemSensor extends DiscoverableSensor<SystemSensorStatus> {
+class SystemSensor extends Sensor<SystemSensorStatus> {
   final Logger logger = locator<Logger>();
   Timer? timer;
 
-  SystemSensor() {
+  SystemSensor(super.configMap, super.id, super.serviceInstance) {
     status = SystemSensorStatus(
         locationStatus: 'unknown'
     );
   }
 
   @override
-  Future<void> init(Map<String, dynamic> config) async {
+  Future<void> onInit(Map<String, dynamic> config) async {
 
   }
 
   @override
-  Future<void> start() async {
+  Future<void> onStart() async {
     var identifier = await locator<SettingsService>().readSetting(carIdentifier);
-    discoverySink.add(DiscoveryData(
+    discoverySink?.add(DiscoveryData(
         type: 'device_tracker',
         objectId: 'location',
         friendlyName: "Location",
@@ -94,7 +94,7 @@ class SystemSensor extends DiscoverableSensor<SystemSensorStatus> {
         });
       }
       if (location != null) {
-        dataSink.add(SensorData('location', jsonEncode(LocationData(
+        dataSink?.add(SensorData('location', jsonEncode(LocationData(
           latitude: location.latitude,
           longitude: location.longitude,
           accuracy: location.accuracy,
@@ -108,7 +108,7 @@ class SystemSensor extends DiscoverableSensor<SystemSensorStatus> {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> onStop() async {
     timer?.cancel();
   }
 }

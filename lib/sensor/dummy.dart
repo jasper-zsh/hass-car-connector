@@ -4,17 +4,19 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
-class DummySensor extends DiscoverableSensor {
+class DummySensor extends Sensor {
   Timer? timer;
 
+  DummySensor(super.configMap, super.id, super.serviceInstance);
+
   @override
-  Future<void> init(Map<String, dynamic> config) async {
+  Future<void> onInit(Map<String, dynamic> config) async {
 
   }
 
   @override
-  Future<void> start() async {
-    discoverySink.add(DiscoveryData(
+  Future<void> onStart() async {
+    discoverySink?.add(DiscoveryData(
         type: 'sensor',
         objectId: 'odometer',
         friendlyName: 'Odometer',
@@ -24,12 +26,12 @@ class DummySensor extends DiscoverableSensor {
         }
     ));
     timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      dataSink.add(SensorData('odometer', '55'));
+      dataSink?.add(SensorData('odometer', '55'));
     });
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> onStop() async {
     timer?.cancel();
   }
 }

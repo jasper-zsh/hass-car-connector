@@ -77,14 +77,14 @@ class SensorConfigFormState extends State<SensorConfigForm> {
 
   void test() async {
     saveEvent.broadcast(SaveEventArgs((config) async {
-      var remote = MqttRemote();
+      var remote = MqttRemote(config);
       try {
         setState(() {
           testing = true;
         });
-        await remote.init(config);
-        await remote.start();
-        await remote.stop();
+        await remote.onInit(config);
+        await remote.onStart();
+        await remote.onStop();
         setState(() {
           testPassed = true;
           testing = false;

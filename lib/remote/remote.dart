@@ -1,43 +1,50 @@
 import 'dart:async';
 
 import 'package:hass_car_connector/sensor/sensor.dart';
+import 'package:hass_car_connector/service_locator.dart';
+import 'package:logger/logger.dart';
 
 abstract class Remote {
-  StreamController<SensorData> dataStreamController = StreamController();
+  final logger = locator<Logger>();
   StreamSubscription<SensorData>? dataSubscription;
-
-  Future<void> init(Map<String, dynamic> configMap);
-  Future<void> start();
-  Future<void> onData(SensorData data);
-  Future<void> stop();
-
-  void listen() {
-    dataSubscription = dataStreamController.stream.listen(onData);
-  }
-  void subscribe(Stream<SensorData> dataStream) {
-    dataStream.pipe(dataStreamController);
-  }
-  void destroy() {
-    dataStreamController.close();
-  }
-}
-
-abstract class DiscoveryRemote extends Remote {
-  StreamController<DiscoveryData> discoveryStreamController = StreamController();
   StreamSubscription<DiscoveryData>? discoverySubscription;
+  Map<String, dynamic> configMap;
 
-  Future<void> onDiscovery(DiscoveryData discoveryData);
+  Remote(this.configMap);
 
-  @override
-  void listen() {
-    super.listen();
-    discoverySubscription = discoveryStreamController.stream.listen(onDiscovery);
+  Future<void> onInit(Map<String, dynamic> configMap);
+  Future<void> onStart();
+  Future<void> onData(SensorData data) async {}
+  Future<void> onDiscovery(DiscoveryData discoveryData) async {}
+  Future<void> onStop();
+
+  Future<void> init() async {
+    await onInit(configMap);
   }
-  void subscribeDiscovery(Stream<DiscoveryData> dataStream) {
-    dataStream.pipe(discoveryStreamController);
+
+  Future<void> start({
+    Stream<SensorData>? dataStream,
+    Stream<DiscoveryData>? discoveryStream
+  }) async {
+    await onStart();
+    dataSubscription = dataStream?.listen((event) {
+      try {
+        onData(event);
+      } catch (e) {
+        logger.e('Failed to send sensor data', e);
+      }
+    });
+    discoverySubscription = discoveryStream?.listen((event) {
+      try {
+        onDiscovery(event);
+      } catch (e) {
+        logger.e('Failed to send discovery data', e);
+      }
+    });
   }
-  void destroy() {
-    super.destroy();
-    discoveryStreamController.close();
+  Future<void> stop() async {
+    dataSubscription?.cancel();
+    discoverySubscription?.cancel();
+    await onStop();
   }
 }

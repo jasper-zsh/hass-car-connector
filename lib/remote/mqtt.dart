@@ -47,7 +47,7 @@ class MqttSensorPayload {
   });
 }
 
-class MqttRemote extends DiscoveryRemote {
+class MqttRemote extends Remote {
   final logger = locator<Logger>();
 
   late MqttServerClient client;
@@ -55,8 +55,10 @@ class MqttRemote extends DiscoveryRemote {
   late String identifier;
   StreamSubscription<SensorData>? dataSubscription;
 
+  MqttRemote(super.configMap);
+
   @override
-  Future<void> init(Map<String, dynamic> configMap) async {
+  Future<void> onInit(Map<String, dynamic> configMap) async {
     config = MqttRemoteConfig.fromJson(configMap);
     identifier = await locator<SettingsService>().readSetting(carIdentifier);
     if (identifier.isEmpty) {
@@ -72,7 +74,7 @@ class MqttRemote extends DiscoveryRemote {
   }
 
   @override
-  Future<void> start() async {
+  Future<void> onStart() async {
     await client.connect(config.username, config.password);
     client.autoReconnect = true;
   }
@@ -108,7 +110,7 @@ class MqttRemote extends DiscoveryRemote {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> onStop() async {
     client.autoReconnect = false;
     client.disconnect();
     dataSubscription?.cancel();

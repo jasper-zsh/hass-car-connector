@@ -14,14 +14,12 @@ import 'package:logger/logger.dart';
 
 var sensorUpdated = Event();
 
-typedef SensorFactory = Sensor Function(ServiceInstance? serviceInstance);
+typedef SensorFactory = Sensor Function(Map<String, dynamic> configMap, int? id, ServiceInstance? serviceInstance);
 
 var sensorFactories = <String, SensorFactory>{
-  'elm327': (serviceInstance) => Elm327Sensor(
-    backgroundService: serviceInstance
-  ),
-  'system': (serviceInstance) => SystemSensor(),
-  'dummy': (serviceInstance) => DummySensor(),
+  'elm327': Elm327Sensor.new,
+  'system': SystemSensor.new,
+  'dummy': DummySensor.new,
 };
 
 class SensorService {
@@ -36,11 +34,11 @@ class SensorService {
       logger.e('Sensor factory ${sensorConfig.type} not registered.');
       throw Exception('Sensor factory ${sensorConfig.type} not registered.');
     }
-    return factory(serviceInstance);
+    return factory(sensorConfig.config.isNotEmpty ? jsonDecode(sensorConfig.config) : {}, sensorConfig.id, serviceInstance);
   }
 
-  Future<Map<int, Sensor>> buildAllEnabledSensors(ServiceInstance? serviceInstance) async {
-    var sensors = <int, Sensor>{};
+  Future<List<Sensor>> buildAllEnabledSensors(ServiceInstance? serviceInstance) async {
+    var sensors = List<Sensor>.empty(growable: true);
     var configs = await sensorConfigRepository.findEnabled();
     for (var config in configs) {
       var sensor = buildSensor(config, serviceInstance);
@@ -48,8 +46,7 @@ class SensorService {
       if (config.config.isNotEmpty) {
         c = jsonDecode(config.config);
       }
-      await sensor.init(c);
-      sensors[config.id!] = sensor;
+      sensors.add(sensor);
     }
     return sensors;
   }

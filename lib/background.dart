@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:ui';
 
@@ -42,11 +43,12 @@ class ReporterService {
   List<Remote> remotes = List.empty(growable: true);
   List<Sensor> sensors = List.empty(growable: true);
 
+  StreamController<SensorData> dataStreamController = StreamController.broadcast();
+  StreamController<DiscoveryData> discoveryStreamController = StreamController.broadcast();
+
   ServiceInstance service;
   RemoteService remoteService;
   SensorService sensorService;
-
-  Timer? periodicTimer;
 
   ReporterService({
     required this.remoteService,
@@ -55,6 +57,12 @@ class ReporterService {
   }): logger = locator<Logger>() {
     service.on('reload').listen((event) {
       reload();
+    });
+    dataStreamController.stream.listen((event) {
+      logger.i('[SensorData] ${jsonEncode(event)}');
+    });
+    discoveryStreamController.stream.listen((event) {
+      logger.i('[DiscoveryData] ${jsonEncode(event)}');
     });
   }
 
@@ -66,40 +74,25 @@ class ReporterService {
     logger.i('reporting service reloaded.');
   }
 
-  void clean() {
-    for (var remote in remotes) {
-      remote.destroy();
-    }
-    for (var sensor in sensors) {
-      sensor.destroy();
-    }
-  }
-
   Future<void> init() async {
-    clean();
     remotes = await remoteService.buildAllEnabledRemotes();
-    for (var remote in remotes) {
-      remote.listen();
-    }
-    var sensorsMap = await sensorService.buildAllEnabledSensors(service);
-    for (var entry in sensorsMap.entries) {
-      entry.value.attach(entry.key, service);
-      sensors.add(entry.value);
-    }
-
-    for (var remote in remotes) {
-      for (var sensor in sensorsMap.values) {
-        remote.subscribe(sensor.dataStream);
-        if (remote is DiscoveryRemote && sensor is DiscoverableSensor) {
-          remote.subscribeDiscovery(sensor.discoveryStream);
-        }
+    sensors = await sensorService.buildAllEnabledSensors(service);
+    for (var sensor in sensors) {
+      await sensor.init(
+          dataSink: dataStreamController.sink,
+          discoverySink: discoveryStreamController.sink);
       }
+    for (var remote in remotes) {
+      await remote.init();
     }
   }
 
   void start() async {
     for (var remote in remotes) {
-      await remote.start();
+      await remote.start(
+        dataStream: dataStreamController.stream,
+        discoveryStream: discoveryStreamController.stream
+      );
     }
     for (var sensor in sensors) {
       await sensor.start();
@@ -107,9 +100,6 @@ class ReporterService {
   }
 
   Future<void> stop() async {
-    if (periodicTimer == null) return;
-    periodicTimer!.cancel();
-    periodicTimer = null;
     for (var remote in remotes) {
       await remote.stop();
     }

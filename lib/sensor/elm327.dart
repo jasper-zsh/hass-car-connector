@@ -26,19 +26,18 @@ class Elm327SensorConfig {
 
 class Elm327Sensor extends Sensor {
   final ble = FlutterReactiveBle();
-  ServiceInstance? backgroundService;
   late Elm327SensorConfig config;
   late StreamSubscription<ConnectionStateUpdate> conn;
 
-  Elm327Sensor({this.backgroundService});
+  Elm327Sensor(super.configMap, super.id, super.serviceInstance);
 
   @override
-  Future<void> init(Map<String, dynamic> config) async {
+  Future<void> onInit(Map<String, dynamic> config) async {
     this.config = Elm327SensorConfig.fromJson(config);
   }
 
   @override
-  Future<void> start() async {
+  Future<void> onStart() async {
     conn = ble.connectToDevice(id: this.config.deviceId!).listen(onConnStateUpdated, onError: onConnError);
   }
 
@@ -49,7 +48,7 @@ class Elm327Sensor extends Sensor {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> onStop() async {
     await conn.cancel();
   }
 
