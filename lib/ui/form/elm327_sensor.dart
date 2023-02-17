@@ -54,7 +54,7 @@ class Elm327SensorConfigFormState extends State<Elm327SensorConfigForm> {
   }
 
   void onSave(SaveEventArgs? args) {
-
+    args?.configCallback(config.toJson());
   }
 
   @override

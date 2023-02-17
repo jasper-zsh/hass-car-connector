@@ -155,6 +155,7 @@ class SensorConfigFormState extends State<SensorConfigForm> {
                         DropdownMenuItem(child: Text('System'), value: 'system',),
                         DropdownMenuItem(child: Text('Dummy'), value: 'dummy',)
                       ],
+                      value: sensorConfig.type,
                       onChanged: (value) {
                         setState(() {
                           sensorConfig.type = value!;
