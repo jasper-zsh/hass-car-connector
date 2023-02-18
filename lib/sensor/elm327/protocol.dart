@@ -21,6 +21,7 @@ class Elm327Protocol {
       switch (c) {
         case '>': // end of response
           completer?.complete(responseBuffer.toString());
+          completer = null;
           responseBuffer.clear();
           break;
         case '\r':  // new line

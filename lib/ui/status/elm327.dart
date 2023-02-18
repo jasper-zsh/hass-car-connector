@@ -58,6 +58,7 @@ class Elm327SensorStatusState extends State<Elm327SensorStatusWidget> {
       children: [
         Text("Adapter: ${status!.adapter}"),
         Text('Car: ${status?.car}'),
+        Text('Observed PIDs: ${status?.observedPIDs.join(',')}')
       ],
     );
   }

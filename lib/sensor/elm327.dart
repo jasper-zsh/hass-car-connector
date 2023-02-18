@@ -8,7 +8,9 @@ import 'dart:typed_data';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
-import 'package:hass_car_connector/sensor/elm327/distance.dart';
+import 'package:hass_car_connector/sensor/elm327/distance_since_code_cleared.dart';
+import 'package:hass_car_connector/sensor/elm327/fuel.dart';
+import 'package:hass_car_connector/sensor/elm327/trip_calc.dart';
 import 'package:hass_car_connector/sensor/elm327/value.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -21,6 +23,7 @@ part 'elm327.g.dart';
 class Elm327SensorStatus {
   String adapter = 'unknown';
   String car = 'disconnected';
+  Set<String> observedPIDs = {};
 
   Elm327SensorStatus();
 
@@ -122,16 +125,20 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     // await send('ATL0');
     await protocol?.send('ATSP0');
     await protocol?.send('ATDP0');
+    await protocol?.send('ATS0');
     await protocol?.send('0100');
+    setStatus(() {
+      status?.car = 'connected';
+    });
     scanPIDs();
   }
 
-  Map<List<String>, Value> supportedValues = {};
+  List<Value> supportedValues = [];
   Set<String> observedPIDs = {};
 
   Future<void> scanPIDs() async {
     var availablePids = List.empty(growable: true);
-    for (var pid in formulaMap.keys) {
+    for (var pid in service1FormulaMap.keys) {
       pid = '01$pid';
       var result = await protocol!.send(pid);
       if (!result.startsWith('NO DATA')) {
@@ -139,23 +146,34 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       }
     }
     logger.i('Available PIDs: $availablePids');
-    supportedValues = {};
+    supportedValues = [];
     for (var value in values) {
       var supported = true;
-      for (var pid in value.dependPIDs) {
+      for (var pid in value.mustPIDs) {
+        supported |= availablePids.contains(pid);
+      }
+      for (var pid in value.mustPIDs) {
         supported &= availablePids.contains(pid);
       }
       if (supported) {
-        supportedValues[value.dependPIDs] = value;
+        supportedValues.add(value);
       }
     }
-    for (var pids in supportedValues.keys) {
-      observedPIDs.addAll(pids);
+    observedPIDs = {};
+    for (var value in supportedValues) {
+      observedPIDs.addAll(value.mustPIDs);
+      observedPIDs.addAll(value.anyPIDs);
     }
-    for (var value in supportedValues.values) {
+    setStatus(() {
+      status?.observedPIDs = observedPIDs;
+    });
+    for (var value in supportedValues) {
       value.clear();
-      discoverySink?.add(value.discovery);
+      for (var d in value.discovery) {
+        discoverySink?.add(d);
+      }
     }
+    running = true;
     Timer.run(() async {
       while (running) {
         var results = <String, double>{};
@@ -163,26 +181,38 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
           var r = await readPid(pid);
           results[pid] = r;
         }
-        for (var entry in supportedValues.entries) {
+        for (var value in supportedValues) {
           var result = <String, double>{};
-          for (var pid in entry.key) {
+          for (var pid in value.mustPIDs) {
             result[pid] = results[pid]!;
           }
-          entry.value.update(result);
+          for (var pid in value.anyPIDs) {
+            result[pid] = results[pid]!;
+          }
+          value.update(result);
         }
       }
     });
     timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      for (var value in supportedValues.values) {
-        dataSink?.add(value.data);
+      for (var value in supportedValues) {
+        for (var d in value.data) {
+          dataSink?.add(d);
+        }
       }
     });
   }
 
   Future<double> readPid(String pid) async {
     var s = await protocol!.send(pid);
-    var parts = s.trim().split(' ');
-    var formula = formulaMap[parts[1]];
+    if (s.startsWith('NO DATA')) {
+      return 0;
+    }
+    var parts = List<String>.empty(growable: true);
+    s = s.trim();
+    for (var i = 0; i < s.length; i += 2) {
+      parts.add(s.substring(i, i+2));
+    }
+    var formula = service1FormulaMap[parts[1]];
     var sData = parts.sublist(2);
     var data = Uint8List(sData.length);
     for (var i = 0; i < sData.length; i ++) {
@@ -203,15 +233,33 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
 }
 
 final values = <Value>[
-  Distance(),
+  TripCalc(), FuelValue(), DistanceSinceCodeCleared(),
 ];
 
 typedef Service1Formula = double Function(Uint8List data);
 
-final formulaMap = <String, Service1Formula>{
+double _airFuelRatio(Uint8List data) => (256.0 * data[0] + data[1]) * 2 / 65536;  // lambda
+
+final service1FormulaMap = <String, Service1Formula>{
   '0D': (data) => data[0].toDouble(), // Vehicle speed(km/h)
   '10': (data) => (256.0 * data[0] + data[1]) / 100,  // Air flow rate(g/s)
+  '24': _airFuelRatio,
+  '25': _airFuelRatio,
+  '26': _airFuelRatio,
+  '27': _airFuelRatio,
+  '28': _airFuelRatio,
+  '29': _airFuelRatio,
+  '2A': _airFuelRatio,
+  '2B': _airFuelRatio,
   '31': (data) => 256.0 * data[0] + data[1],  // Distance since code cleared(km)
+  '34': _airFuelRatio,
+  '35': _airFuelRatio,
+  '36': _airFuelRatio,
+  '37': _airFuelRatio,
+  '38': _airFuelRatio,
+  '39': _airFuelRatio,
+  '3A': _airFuelRatio,
+  '3B': _airFuelRatio,
   '5E': (data) => (256.0 * data[0] + data[1]) / 20, // Fuel rate(L/h)
   'A6': (data) => (data[0]<<24 + data[1]<<16 + data[2]<<8 + data[3]) / 10 // Odometer
 };
