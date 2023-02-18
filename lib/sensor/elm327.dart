@@ -8,6 +8,8 @@ import 'dart:typed_data';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:hass_car_connector/entities/sensor_config.dart';
+import 'package:hass_car_connector/sensor/elm327/distance.dart';
+import 'package:hass_car_connector/sensor/elm327/value.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -48,6 +50,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
   StreamSubscription<List<int>>? readSubscription;
   Elm327Protocol? protocol;
   Timer? timer;
+  var running = false;
 
   Elm327Sensor(super.configMap, super.id, super.serviceInstance) {
     status = Elm327SensorStatus();
@@ -123,10 +126,11 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     scanPIDs();
   }
 
-  List<String> availablePids = List.empty(growable: true);
+  Map<List<String>, Value> supportedValues = {};
+  Set<String> observedPIDs = {};
 
   Future<void> scanPIDs() async {
-    availablePids = List.empty(growable: true);
+    var availablePids = List.empty(growable: true);
     for (var pid in formulaMap.keys) {
       pid = '01$pid';
       var result = await protocol!.send(pid);
@@ -135,10 +139,42 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       }
     }
     logger.i('Available PIDs: $availablePids');
-    timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      for (var pid in availablePids) {
-        var r = await readPid(pid);
-        logger.i('PID: $pid Value: $r');
+    supportedValues = {};
+    for (var value in values) {
+      var supported = true;
+      for (var pid in value.dependPIDs) {
+        supported &= availablePids.contains(pid);
+      }
+      if (supported) {
+        supportedValues[value.dependPIDs] = value;
+      }
+    }
+    for (var pids in supportedValues.keys) {
+      observedPIDs.addAll(pids);
+    }
+    for (var value in supportedValues.values) {
+      value.clear();
+      discoverySink?.add(value.discovery);
+    }
+    Timer.run(() async {
+      while (running) {
+        var results = <String, double>{};
+        for (var pid in observedPIDs) {
+          var r = await readPid(pid);
+          results[pid] = r;
+        }
+        for (var entry in supportedValues.entries) {
+          var result = <String, double>{};
+          for (var pid in entry.key) {
+            result[pid] = results[pid]!;
+          }
+          entry.value.update(result);
+        }
+      }
+    });
+    timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      for (var value in supportedValues.values) {
+        dataSink?.add(value.data);
       }
     });
   }
@@ -158,6 +194,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
 
   @override
   Future<void> onStop() async {
+    running = false;
     timer?.cancel();
     timer = null;
     await readSubscription?.cancel();
@@ -165,9 +202,15 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
   }
 }
 
+final values = <Value>[
+  Distance(),
+];
+
 typedef Service1Formula = double Function(Uint8List data);
 
 final formulaMap = <String, Service1Formula>{
+  '0D': (data) => data[0].toDouble(), // Vehicle speed(km/h)
+  '10': (data) => (256.0 * data[0] + data[1]) / 100,  // Air flow rate(g/s)
   '31': (data) => 256.0 * data[0] + data[1],  // Distance since code cleared(km)
   '5E': (data) => (256.0 * data[0] + data[1]) / 20, // Fuel rate(L/h)
   'A6': (data) => (data[0]<<24 + data[1]<<16 + data[2]<<8 + data[3]) / 10 // Odometer

@@ -50,13 +50,14 @@ class Elm327SensorStatusState extends State<Elm327SensorStatusWidget> {
   @override
   Widget build(BuildContext context) {
     if (status == null) {
-      return Center(
+      return const Center(
         child: Text('Status unknown'),
       );
     }
     return Column(
       children: [
         Text("Adapter: ${status!.adapter}"),
+        Text('Car: ${status?.car}'),
       ],
     );
   }
