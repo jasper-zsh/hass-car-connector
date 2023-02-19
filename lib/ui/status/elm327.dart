@@ -54,12 +54,19 @@ class Elm327SensorStatusState extends State<Elm327SensorStatusWidget> {
         child: Text('Status unknown'),
       );
     }
+    var children = [
+      Text("Adapter: ${status!.adapter}"),
+      Text('Car: ${status?.car}'),
+      Text('Observed PIDs: ${status?.observedPIDs.join(',')}')
+    ];
+    if (status != null) {
+      for (var e in status!.valueStatuses.entries) {
+        children.add(Text("${e.key}: ${e.value}"));
+      }
+    }
     return Column(
-      children: [
-        Text("Adapter: ${status!.adapter}"),
-        Text('Car: ${status?.car}'),
-        Text('Observed PIDs: ${status?.observedPIDs.join(',')}')
-      ],
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
 }

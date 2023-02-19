@@ -2,7 +2,6 @@ import 'package:hass_car_connector/sensor/elm327/value.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
 class DistanceSinceCodeCleared extends Value {
-  @override
   double value = 0;
 
   @override
@@ -12,6 +11,9 @@ class DistanceSinceCodeCleared extends Value {
   void clear() {
     value = 0;
   }
+
+  @override
+  String get status => value.toStringAsFixed(3);
 
   @override
   List<SensorData> get data => [SensorData('distance_since_code_cleared', value.toStringAsFixed(3))];

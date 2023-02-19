@@ -24,6 +24,7 @@ class Elm327SensorStatus {
   String adapter = 'unknown';
   String car = 'disconnected';
   Set<String> observedPIDs = {};
+  Map<String, String> valueStatuses = {};
 
   Elm327SensorStatus();
 
@@ -173,6 +174,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
         discoverySink?.add(d);
       }
     }
+    status?.valueStatuses = {};
     running = true;
     Timer.run(() async {
       while (running) {
@@ -195,10 +197,12 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     });
     timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       for (var value in supportedValues) {
+        status?.valueStatuses[value.runtimeType.toString()] = value.status;
         for (var d in value.data) {
           dataSink?.add(d);
         }
       }
+      setStatus(() {});
     });
   }
 
@@ -213,13 +217,17 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       parts.add(s.substring(i, i+2));
     }
     var formula = service1FormulaMap[parts[1]];
+    if (formula == null) {
+      logger.e('Formula not defined for PID ${parts[1]}');
+      return 0;
+    }
     var sData = parts.sublist(2);
     var data = Uint8List(sData.length);
     for (var i = 0; i < sData.length; i ++) {
       var b = int.parse(sData[i], radix: 16);
       data[i] = b;
     }
-    return formula!(data);
+    return formula(data);
   }
 
   @override

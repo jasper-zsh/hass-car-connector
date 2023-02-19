@@ -6,8 +6,11 @@ import 'package:hass_car_connector/sensor/sensor.dart';
 class FuelValue extends Value {
   int _lastTime = 0;
   double _lastFuelFlow = 0;
-  @override
   double value = 0;
+
+  @override
+  // TODO: implement status
+  String get status => "FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
 
   @override
   void clear() {
@@ -88,7 +91,7 @@ class FuelValue extends Value {
     var minFuelFlow = min(_lastFuelFlow, fuelFlow);
     var dFuelFlow = (fuelFlow - _lastFuelFlow).abs();
     _lastFuelFlow = fuelFlow;
-    if (value == double.nan) {
+    if (value.isNaN || value.isInfinite) {
       value = 0;
     }
     value += (minFuelFlow * dTime + dFuelFlow * dTime / 2) / 1000 / 3600;

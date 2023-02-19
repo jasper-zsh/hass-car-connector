@@ -4,7 +4,7 @@ abstract class Value {
   List<String> get mustPIDs => List.empty();
   List<String> get anyPIDs => List.empty();
   void update(Map<String, double> result);
-  double get value;
+  String get status => "No status";
   void clear();
   List<DiscoveryData> get discovery;
   List<SensorData> get data;

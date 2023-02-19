@@ -4,10 +4,13 @@ import 'package:hass_car_connector/sensor/elm327/value.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 
 class TripCalc extends Value {
-  @override
   double value = 0;
   int _lastTime = 0;
   double _lastSpeed = 0;
+
+  @override
+  // TODO: implement status
+  String get status => value.toStringAsFixed(3);
 
   @override
   List<String> get mustPIDs => ['010D'];
@@ -25,6 +28,9 @@ class TripCalc extends Value {
     _lastTime = time;
     var minSpeed = min(speed, _lastSpeed);
     var dSpeed = (_lastSpeed - speed).abs();
+    if (value.isNaN || value.isInfinite) {
+      value = 0;
+    }
     value += (dTime * minSpeed + dSpeed * dTime / 2) / 1000 / 3600;
   }
 
