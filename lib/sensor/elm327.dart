@@ -47,7 +47,7 @@ class Elm327SensorConfig {
 }
 
 class Elm327Sensor extends Sensor<Elm327SensorStatus> {
-  final ble = FlutterReactiveBle();
+  FlutterReactiveBle? ble;
   late Elm327SensorConfig config;
   StreamSubscription<ConnectionStateUpdate>? conn;
   QualifiedCharacteristic? reader, writer;
@@ -67,10 +67,12 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
 
   @override
   Future<void> onStart() async {
-    conn = ble.connectToDevice(id: this.config.deviceId!).listen(onConnStateUpdated, onError: onConnError);
+    ble = FlutterReactiveBle();
+    conn = ble!.connectToDevice(id: this.config.deviceId!).listen(onConnStateUpdated, onError: onConnError);
   }
 
   void onConnStateUpdated(ConnectionStateUpdate state) {
+    logger.i('$state');
     if (state.connectionState == DeviceConnectionState.connected) {
       onAdapterConnected();
     } else {
@@ -81,11 +83,14 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
   }
 
   void onConnError(dynamic e) {
+    setStatus(() {
+      status?.adapter = DeviceConnectionState.disconnected.name;
+    });
     logger.e('Connection error: $e');
   }
 
   void onAdapterConnected() async {
-    var services = await ble.discoverServices(config.deviceId!);
+    var services = await ble!.discoverServices(config.deviceId!);
     services = services.where((element) => element.serviceId.toString().startsWith('0000fff0')).toList();
     if (services.isEmpty) {
       setStatus(() {
@@ -102,9 +107,9 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     }
     if (reader != null && writer != null) {
       protocol = Elm327Protocol((data) {
-        ble.writeCharacteristicWithoutResponse(writer!, value: data);
+        ble?.writeCharacteristicWithoutResponse(writer!, value: data);
       });
-      readSubscription = ble.subscribeToCharacteristic(reader!).listen((event) {
+      readSubscription = ble!.subscribeToCharacteristic(reader!).listen((event) {
         protocol?.receive(event);
       });
       logger.i('Found elm service $elmService');
@@ -188,23 +193,27 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
         for (var value in supportedValues) {
           var result = <String, double>{};
           for (var pid in value.mustPIDs) {
-            result[pid] = results[pid]!;
+            if (results.containsKey(pid)) {
+              result[pid] = results[pid]!;
+            }
           }
           for (var pid in value.anyPIDs) {
-            result[pid] = results[pid]!;
+            if (results.containsKey(pid)) {
+              result[pid] = results[pid]!;
+            }
           }
           value.update(result);
+          status?.valueStatuses[value.runtimeType.toString()] = value.status;
         }
+        setStatus(() {});
       }
     });
     timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       for (var value in supportedValues) {
-        status?.valueStatuses[value.runtimeType.toString()] = value.status;
         for (var d in value.data) {
           dataSink?.add(d);
         }
       }
-      setStatus(() {});
     });
   }
 
@@ -215,7 +224,11 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     }
     var parts = List<String>.empty(growable: true);
     s = s.trim();
-    for (var i = 0; i < s.length; i += 2) {
+    if (s.isEmpty) {
+      logger.e('Illegal empty response');
+      return 0;
+    }
+    for (var i = 0; i + 2 <= s.length; i += 2) {
       parts.add(s.substring(i, i+2));
     }
     var formula = service1FormulaMap[parts[1]];
@@ -239,6 +252,10 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     timer = null;
     await readSubscription?.cancel();
     await conn?.cancel();
+    ble = null;
+    setStatus(() {
+      status = Elm327SensorStatus();
+    });
   }
 }
 

@@ -17,6 +17,7 @@ class LogsPageState extends State<LogsPage> {
   late ScrollController _scrollController;
 
   List<OutputEvent> logs = List.empty(growable: true);
+  var autoScroll = true;
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class LogsPageState extends State<LogsPage> {
   @override
   void dispose() {
     super.dispose();
+    _scrollController.dispose();
     subscription.cancel();
   }
 
@@ -37,8 +39,13 @@ class LogsPageState extends State<LogsPage> {
       if (logs.length > 1000) {
         logs.removeAt(0);
       }
-      if (_scrollController.position.atEdge) {
-        _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: Duration(milliseconds: 300), curve: Curves.easeIn);
+      if (autoScroll) {
+        Timer(const Duration(milliseconds: 100), () {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(
+                _scrollController.position.maxScrollExtent);
+          }
+        });
       }
     });
   }

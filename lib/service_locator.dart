@@ -25,11 +25,12 @@ Future<void> setupLocator(ServiceInstance? serviceInstance) async {
   }, dependsOn: [AppDatabase]);
   locator.registerSingleton<UIStreamOutput>(UIStreamOutput(serviceInstance));
   locator.registerSingleton<Logger>(Logger(
-      output: MultiOutput([
-        ServiceOutput(serviceInstance),
-        locator<UIStreamOutput>(),
-        ConsoleOutput()
-      ]),
+    filter: ProductionFilter(),
+    output: MultiOutput([
+      ServiceOutput(serviceInstance),
+      locator<UIStreamOutput>(),
+      ConsoleOutput()
+    ]),
     printer: PrettyPrinter(
       colors: false,
       methodCount: 0,

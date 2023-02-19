@@ -7,10 +7,11 @@ class FuelValue extends Value {
   int _lastTime = 0;
   double _lastFuelFlow = 0;
   double value = 0;
+  double afr = 0;
+  double mas = 0;
 
   @override
-  // TODO: implement status
-  String get status => "FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
+  String get status => "AFR: ${afr.toStringAsFixed(2)}   MAS: ${mas.toStringAsFixed(2)}   FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
 
   @override
   void clear() {
@@ -72,10 +73,12 @@ class FuelValue extends Value {
       if (afr == null) {
         return;
       }
+      this.afr = afr;
       var mas = result['0110'];
       if (mas == null) {
         return;
       }
+      this.mas = mas;
       fuelFlow = mas / afr; // g/s
       fuelFlow /= 0.725;  // ml/s
       fuelFlow = fuelFlow * 3600 / 1000; // L/h
@@ -102,7 +105,11 @@ class FuelValue extends Value {
     int lambdaCount = 0;
     for (var pid in afrPIDs) {
       if (result.containsKey(pid)) {
-        lambdaSum += result[pid]!;
+        var r = result[pid]!;
+        if (r == 0) {
+          continue;
+        }
+        lambdaSum += r;
         lambdaCount += 1;
       }
     }
