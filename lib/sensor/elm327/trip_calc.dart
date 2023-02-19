@@ -9,8 +9,7 @@ class TripCalc extends Value {
   double _lastSpeed = 0;
 
   @override
-  // TODO: implement status
-  String get status => value.toStringAsFixed(3);
+  String get status => 'Speed: ${_lastSpeed.toStringAsFixed(2)}   Trip: ${value.toStringAsFixed(3)}';
 
   @override
   List<String> get mustPIDs => ['010D'];
@@ -19,19 +18,16 @@ class TripCalc extends Value {
   void update(Map<String, double> result) {
     int time = DateTime.now().millisecondsSinceEpoch;
     var speed = result['010D']!;
-    if (_lastTime == 0) {
-      _lastSpeed = speed;
-      _lastTime = time;
-      return;
+    if (_lastTime > 0) {
+      var dTime = time - _lastTime;
+      var dSpeed = speed - _lastSpeed;
+      if (value.isNaN || value.isInfinite) {
+        value = 0;
+      }
+      value += (dTime * _lastSpeed + dSpeed * dTime / 2) / 1000 / 3600;
     }
-    var dTime = time - _lastTime;
     _lastTime = time;
-    var minSpeed = min(speed, _lastSpeed);
-    var dSpeed = (_lastSpeed - speed).abs();
-    if (value.isNaN || value.isInfinite) {
-      value = 0;
-    }
-    value += (dTime * minSpeed + dSpeed * dTime / 2) / 1000 / 3600;
+    _lastSpeed = speed;
   }
 
   @override

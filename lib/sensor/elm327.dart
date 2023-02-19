@@ -162,8 +162,8 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     }
     observedPIDs = {};
     for (var value in supportedValues) {
-      observedPIDs.addAll(value.mustPIDs);
-      observedPIDs.addAll(value.anyPIDs);
+      observedPIDs.addAll(value.mustPIDs.where((element) => availablePids.contains(element)));
+      observedPIDs.addAll(value.anyPIDs.where((element) => availablePids.contains(element)));
     }
     setStatus(() {
       status?.observedPIDs = observedPIDs;
@@ -181,7 +181,9 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
         var results = <String, double>{};
         for (var pid in observedPIDs) {
           var r = await readPid(pid);
-          results[pid] = r;
+          if (r != null) {
+            results[pid] = r;
+          }
         }
         for (var value in supportedValues) {
           var result = <String, double>{};
@@ -206,10 +208,10 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     });
   }
 
-  Future<double> readPid(String pid) async {
+  Future<double?> readPid(String pid) async {
     var s = await protocol!.send(pid);
     if (s.startsWith('NO DATA')) {
-      return 0;
+      return null;
     }
     var parts = List<String>.empty(growable: true);
     s = s.trim();
@@ -219,7 +221,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     var formula = service1FormulaMap[parts[1]];
     if (formula == null) {
       logger.e('Formula not defined for PID ${parts[1]}');
-      return 0;
+      return null;
     }
     var sData = parts.sublist(2);
     var data = Uint8List(sData.length);
