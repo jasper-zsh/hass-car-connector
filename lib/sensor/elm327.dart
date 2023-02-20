@@ -68,7 +68,11 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
   @override
   Future<void> onStart() async {
     ble = FlutterReactiveBle();
-    conn = ble!.connectToDevice(id: this.config.deviceId!).listen(onConnStateUpdated, onError: onConnError);
+    connect();
+  }
+
+  void connect() {
+    conn = ble!.connectToDevice(id: config.deviceId!, connectionTimeout: const Duration(seconds: 15)).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
   }
 
   void onConnStateUpdated(ConnectionStateUpdate state) {
@@ -82,11 +86,19 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     }
   }
 
-  void onConnError(dynamic e) {
+  void onConnError(dynamic e) async {
     setStatus(() {
       status?.adapter = DeviceConnectionState.disconnected.name;
     });
     logger.e('Connection error: $e');
+    connect();
+  }
+
+  void onConnDone() {
+    setStatus(() {
+      status?.adapter = DeviceConnectionState.disconnected.name;
+    });
+    logger.i('Connection done');
   }
 
   void onAdapterConnected() async {
@@ -252,6 +264,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     timer = null;
     await readSubscription?.cancel();
     await conn?.cancel();
+    conn = null;
     ble = null;
     setStatus(() {
       status = Elm327SensorStatus();
