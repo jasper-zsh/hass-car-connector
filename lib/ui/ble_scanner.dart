@@ -33,10 +33,10 @@ class BleScannerState extends State<BleScanner> {
   }
 
   void scan() async {
-    if (!await Permission.bluetooth.request().isGranted) {
+    if (!await Permission.bluetoothScan.request().isGranted) {
       return;
     }
-    if (!await Permission.bluetoothScan.request().isGranted) {
+    if (!await Permission.bluetoothConnect.request().isGranted) {
       return;
     }
     if (!await Permission.location.request().isGranted) {

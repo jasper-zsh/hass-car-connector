@@ -14,6 +14,7 @@ import 'package:hass_car_connector/sensor/elm327/trip_calc.dart';
 import 'package:hass_car_connector/sensor/elm327/value.dart';
 import 'package:hass_car_connector/sensor/sensor.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'elm327/protocol.dart';
 
@@ -67,11 +68,16 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
 
   @override
   Future<void> onStart() async {
+    if (!await Permission.bluetoothConnect.isGranted) {
+      logger.e('Bluetooth connect permission is not granted!');
+      return;
+    }
     ble = FlutterReactiveBle();
     connect();
   }
 
   void connect() {
+    logger.i('Start to connect to adapter ${config.deviceName} ${config.deviceId}');
     conn = ble!.connectToDevice(id: config.deviceId!, connectionTimeout: const Duration(seconds: 15)).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
   }
 
