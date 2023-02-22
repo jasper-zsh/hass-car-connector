@@ -12,12 +12,12 @@ class TripCalc extends Value {
   String get status => 'Speed: ${_lastSpeed.toStringAsFixed(2)}   Trip: ${value.toStringAsFixed(3)}';
 
   @override
-  List<String> get mustPIDs => ['010D'];
+  List<String> get mustPIDs => ['0D'];
 
   @override
   void update(Map<String, double> result) {
     int time = DateTime.now().millisecondsSinceEpoch;
-    var speed = result['010D']!;
+    var speed = result['0D']!;
     if (_lastTime > 0) {
       var dTime = time - _lastTime;
       var dSpeed = speed - _lastSpeed;

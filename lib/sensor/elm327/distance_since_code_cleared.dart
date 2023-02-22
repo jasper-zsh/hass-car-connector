@@ -5,7 +5,7 @@ class DistanceSinceCodeCleared extends Value {
   double value = 0;
 
   @override
-  List<String> get mustPIDs => ['0131'];
+  List<String> get mustPIDs => ['31'];
 
   @override
   void clear() {
@@ -32,7 +32,7 @@ class DistanceSinceCodeCleared extends Value {
 
   @override
   void update(Map<String, double> result) {
-    value = result['0131']!;
+    value = result['31']!;
   }
 
 }

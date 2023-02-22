@@ -8,10 +8,14 @@ class FuelValue extends Value {
   double _lastFuelFlow = 0;
   double value = 0;
   double afr = 0;
-  double mas = 0;
+  double maf = 0;
+  double displacement = 0;
+  FuelValue(Map<String, dynamic> config) {
+    displacement = config['displacement'] ?? 0;
+  }
 
   @override
-  String get status => "AFR: ${afr.toStringAsFixed(2)}   MAS: ${mas.toStringAsFixed(2)}   FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
+  String get status => "AFR: ${afr.toStringAsFixed(2)}   MAF: ${maf.toStringAsFixed(2)}   FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
 
   @override
   void clear() {
@@ -20,15 +24,10 @@ class FuelValue extends Value {
     value = 0;
   }
 
-  List<String> afrPIDs = [
-    '0124', '0125', '0126', '0127', '0128', '0129', '012A', '012B',
-    '0134', '0135', '0136', '0137', '0138', '0139', '013A', '013B',
-  ];
-
   @override
   List<String> get anyPIDs => List.from(afrPIDs, growable: true)
-      ..add('0110') // air flow
       // ..add('015E')  // fuel flow
+      ..addAll(mapPIDs)
   ;
 
   @override
@@ -67,21 +66,15 @@ class FuelValue extends Value {
 
   @override
   void update(Map<String, double> result) {
-    var fuelFlow = result['015E'];  // L/h
+    double? fuelFlow;
+    for (var calculator in fuelFlowCalculators) {
+      fuelFlow = calculator(result);
+      if (fuelFlow != null) {
+        break;
+      }
+    }
     if (fuelFlow == null) {
-      var afr = avgAFR(result);
-      if (afr == null) {
-        return;
-      }
-      this.afr = afr;
-      var mas = result['0110'];
-      if (mas == null) {
-        return;
-      }
-      this.mas = mas;
-      fuelFlow = mas / afr; // g/s
-      fuelFlow /= 0.725;  // ml/s
-      fuelFlow = fuelFlow * 3600 / 1000; // L/h
+      return;
     }
     var time = DateTime.now().millisecondsSinceEpoch;
     if (_lastTime == 0) {
@@ -100,24 +93,78 @@ class FuelValue extends Value {
     value += (minFuelFlow * dTime + dFuelFlow * dTime / 2) / 1000 / 3600;
   }
 
-  double? avgAFR(Map<String, double> result) {
-    double lambdaSum = 0;
-    int lambdaCount = 0;
-    for (var pid in afrPIDs) {
-      if (result.containsKey(pid)) {
-        var r = result[pid]!;
-        if (r == 0) {
-          continue;
+  List<FuelFlowCalculator> get fuelFlowCalculators => <FuelFlowCalculator>[
+    (result) => result['5E'],
+    (result) {
+      var hasAFR = false;
+      for (var pid in afrPIDs) {
+        if (result.containsKey(pid)) {
+          hasAFR = true;
+          break;
         }
-        lambdaSum += r;
-        lambdaCount += 1;
       }
-    }
-    if (lambdaCount == 0) {
+      if (hasAFR && result.containsKey('10')) {
+        var afr = avgAFR(result);
+        if (afr == null) {
+          return null;
+        }
+        this.afr = afr;
+        var maf = result['10'];
+        if (maf == null) {
+          return null;
+        }
+        this.maf = maf;
+        var fuelFlow = maf / afr; // g/s
+        fuelFlow /= 0.725;  // ml/s
+        fuelFlow = fuelFlow * 3600 / 1000; // L/h
+        return fuelFlow;
+      }
       return null;
+    },
+    (result) {
+      var hasMAP = true;
+      for (var pid in mapPIDs) {
+        if (!result.containsKey(pid)) {
+          hasMAP = false;
+          break;
+        }
+      }
+      if (!hasMAP) {
+        return null;
+      }
+      return 0.00774808801 * displacement * result['0C']! * result['0B']! / (result['0F']! + 273.15);
     }
-    double avgLambda = lambdaSum / lambdaCount;
-    return avgLambda * 14.6;
-  }
+  ];
 
+}
+
+typedef FuelFlowCalculator = double? Function(Map<String, double> result);
+
+
+List<String> afrPIDs = [
+  '24', '25', '26', '27', '28', '29', '2A', '2B',
+  '34', '35', '36', '37', '38', '39', '3A', '3B',
+  '10',
+];
+
+List<String> mapPIDs = ['0B', '0C', '0F'];
+
+double? avgAFR(Map<String, double> result) {
+  double lambdaSum = 0;
+  int lambdaCount = 0;
+  for (var pid in afrPIDs) {
+    if (result.containsKey(pid)) {
+      var r = result[pid]!;
+      if (r == 0) {
+        continue;
+      }
+      lambdaSum += r;
+      lambdaCount += 1;
+    }
+  }
+  if (lambdaCount == 0) {
+    return null;
+  }
+  double avgLambda = lambdaSum / lambdaCount;
+  return avgLambda * 14.6;
 }
