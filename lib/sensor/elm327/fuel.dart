@@ -9,13 +9,14 @@ class FuelValue extends Value {
   double value = 0;
   double afr = 0;
   double maf = 0;
+  double map = 0, rpm = 0, iat = 0;
   double displacement = 0;
   FuelValue(Map<String, dynamic> config) {
     displacement = config['displacement'] ?? 0;
   }
 
   @override
-  String get status => "AFR: ${afr.toStringAsFixed(2)}   MAF: ${maf.toStringAsFixed(2)}   FuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}   FuelConsumption: ${value.toStringAsFixed(3)}";
+  String get status => "AFR: ${afr.toStringAsFixed(2)}   MAF: ${maf.toStringAsFixed(2)}\nMAP: ${map.toStringAsFixed(0)}   RPM: ${rpm.toStringAsFixed(2)}   IAT: ${iat.toStringAsFixed(0)}\nFuelFlow: ${_lastFuelFlow.toStringAsFixed(3)}\nFuelConsumption: ${value.toStringAsFixed(3)}";
 
   @override
   void clear() {
@@ -109,11 +110,17 @@ class FuelValue extends Value {
           return null;
         }
         this.afr = afr;
+        if (afr == 0) {
+          return null;
+        }
         var maf = result['10'];
         if (maf == null) {
           return null;
         }
         this.maf = maf;
+        if (maf == 0) {
+          return null;
+        }
         var fuelFlow = maf / afr; // g/s
         fuelFlow /= 0.725;  // ml/s
         fuelFlow = fuelFlow * 3600 / 1000; // L/h
@@ -132,7 +139,10 @@ class FuelValue extends Value {
       if (!hasMAP) {
         return null;
       }
-      return 0.00774808801 * displacement * result['0C']! * result['0B']! / (result['0F']! + 273.15);
+      rpm = result['0C']!;
+      map = result['0B']!;
+      iat = result['0F']!;
+      return 0.00774808801 * displacement * rpm * map / (iat + 273.15);
     }
   ];
 
