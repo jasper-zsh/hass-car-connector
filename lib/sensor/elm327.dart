@@ -1,13 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:developer';
-import 'dart:ffi';
-import 'dart:math';
-import 'dart:typed_data';
 
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:hass_car_connector/entities/sensor_config.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:hass_car_connector/sensor/elm327/distance_since_code_cleared.dart';
 import 'package:hass_car_connector/sensor/elm327/fuel.dart';
 import 'package:hass_car_connector/sensor/elm327/trip_calc.dart';
@@ -51,10 +44,9 @@ class Elm327SensorConfig {
 }
 
 class Elm327Sensor extends Sensor<Elm327SensorStatus> {
-  FlutterReactiveBle? ble;
+  final blue = FlutterBluePlus.instance;
   late Elm327SensorConfig config;
-  StreamSubscription<ConnectionStateUpdate>? conn;
-  QualifiedCharacteristic? reader, writer;
+  BluetoothDevice? device;
   StreamSubscription<List<int>>? readSubscription;
   Elm327Protocol? protocol;
   Timer? timer;
@@ -75,69 +67,62 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       logger.e('Bluetooth connect permission is not granted!');
       return;
     }
-    ble = FlutterReactiveBle();
     connect();
   }
 
-  void connect() {
+  void connect() async {
+    blue.setLogLevel(LogLevel.info);
     logger.i('Start to connect to adapter ${config.deviceName} ${config.deviceId}');
-    ble!.connectToAdvertisingDevice(
-      id: config.deviceId!,
-      withServices: [Uuid.parse(config.serviceUUID!)],
-      prescanDuration: const Duration(seconds: 10),
-      connectionTimeout: const Duration(seconds: 15)
-    ).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
-    conn = ble!.connectToDevice(id: config.deviceId!, connectionTimeout: const Duration(seconds: 15)).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
-  }
-
-  void onConnStateUpdated(ConnectionStateUpdate state) {
-    logger.i('$state');
-    if (state.connectionState == DeviceConnectionState.connected) {
-      onAdapterConnected();
-    } else {
-      setStatus(() {
-        status?.adapter = state.connectionState.name;
-      });
+    var devices = await blue.connectedDevices;
+    for (var device in devices) {
+      if (device.id.id == config.deviceId!) {
+        this.device = device;
+        logger.i('Found connected device: $device');
+        onAdapterConnected();
+        return;
+      }
     }
-  }
-
-  void onConnError(dynamic e) async {
     setStatus(() {
-      status?.adapter = DeviceConnectionState.disconnected.name;
+      status?.adapter = 'scanning';
     });
-    logger.e('Connection error: $e');
-    connect();
-  }
-
-  void onConnDone() {
-    setStatus(() {
-      status?.adapter = DeviceConnectionState.disconnected.name;
+    blue.startScan(timeout: const Duration(seconds: 5));
+    blue.scanResults.listen((event) async {
+      for (var r in event) {
+        if (r.device.id.id == config.deviceId!) {
+          device = r.device;
+          blue.stopScan();
+          logger.i('Connecting to device $device');
+          await device?.connect();
+          onAdapterConnected();
+          return;
+        }
+      }
     });
-    logger.i('Connection done');
-    connect();
   }
 
   void onAdapterConnected() async {
-    var services = await ble!.discoverServices(config.deviceId!);
-    services = services.where((element) => element.serviceId.toString().startsWith('0000fff0')).toList();
+    var services = await device!.discoverServices();
+    services = services.where((element) => element.uuid.toString().startsWith('0000fff0')).toList();
     if (services.isEmpty) {
       setStatus(() {
         status?.adapter = 'unsupported';
       });
     }
     var elmService = services[0];
+    BluetoothCharacteristic? reader, writer;
     for (var ch in elmService.characteristics) {
-      if (ch.isReadable) {
-        reader = QualifiedCharacteristic(characteristicId: ch.characteristicId, serviceId: ch.serviceId, deviceId: config.deviceId!);
-      } else if (ch.isWritableWithResponse) {
-        writer = QualifiedCharacteristic(characteristicId: ch.characteristicId, serviceId: ch.serviceId, deviceId: config.deviceId!);
+      if (ch.properties.notify) {
+        reader = ch;
+      } else if (ch.properties.write) {
+        writer = ch;
       }
     }
     if (reader != null && writer != null) {
       protocol = Elm327Protocol(logger, (data) {
-        ble?.writeCharacteristicWithoutResponse(writer!, value: data);
+        writer?.write(data);
       });
-      readSubscription = ble!.subscribeToCharacteristic(reader!).listen((event) {
+      await reader.setNotifyValue(true);
+      readSubscription = reader.value.listen((event) {
         protocol?.receive(event);
       });
       logger.i('Found elm service $elmService');
@@ -252,9 +237,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     timer?.cancel();
     timer = null;
     await readSubscription?.cancel();
-    await conn?.cancel();
-    conn = null;
-    ble = null;
+    await device?.disconnect();
     setStatus(() {
       status = Elm327SensorStatus();
     });

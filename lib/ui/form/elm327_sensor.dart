@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:event/event.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:hass_car_connector/sensor/elm327.dart';
 import 'package:hass_car_connector/ui/ble_scanner.dart';
 import 'package:hass_car_connector/ui/popup.dart';
@@ -68,22 +67,13 @@ class Elm327SensorConfigFormState extends State<Elm327SensorConfigForm> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Navigator.push<DiscoveredDevice>(context, MaterialPageRoute(builder: (context) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return BleScanner(
-                  onDeviceSelected: (device) {
-                    for (var serviceUuid in device.serviceUuids) {
-                      if (serviceUuid.toString().toLowerCase().startsWith('0000fff0')) {
-                        setState(() {
-                          config.deviceName = device.name;
-                          config.deviceId = device.id;
-                          config.serviceUUID = serviceUuid.toString();
-                          _deviceNameController.text = device.name;
-                        });
-                        return;
-                      }
-                    }
-                    Timer(const Duration(milliseconds: 100), () {
-                      showAlert(context: context, title: '错误', content: '不支持该设备');
+                  onDeviceSelected: (device) async {
+                    setState(() {
+                      config.deviceName = device.name;
+                      config.deviceId = device.id.id;
+                      _deviceNameController.text = device.name;
                     });
                   },
                 );

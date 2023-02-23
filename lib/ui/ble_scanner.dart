@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-typedef DeviceCallback = void Function(DiscoveredDevice device);
+typedef DeviceCallback = void Function(BluetoothDevice device);
 
 class BleScanner extends StatefulWidget {
   DeviceCallback? onDeviceSelected;
@@ -21,10 +21,9 @@ class BleScanner extends StatefulWidget {
 }
 
 class BleScannerState extends State<BleScanner> {
-  final ble = FlutterReactiveBle();
+  final blue = FlutterBluePlus.instance;
 
-  StreamSubscription<DiscoveredDevice>? deviceSubscription;
-  Map<String, DiscoveredDevice> devices = {};
+  Map<String, BluetoothDevice> devices = {};
 
   @override
   void initState() {
@@ -42,25 +41,23 @@ class BleScannerState extends State<BleScanner> {
     if (!await Permission.location.request().isGranted) {
       return;
     }
-    await deviceSubscription?.cancel();
     setState(() {
       devices = {};
     });
-    deviceSubscription = ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((event) async {
-      if (event.name.isNotEmpty) {
+    blue.startScan(timeout: const Duration(seconds: 5));
+    blue.scanResults.listen((event) {
+      for (var r in event) {
         setState(() {
-          devices[event.id] = event;
+          devices[r.device.id.id] = r.device;
         });
       }
-    }, onError: (e) {
-      log('Scan failed: $e');
     });
   }
 
   @override
   void dispose() {
     super.dispose();
-    deviceSubscription?.cancel();
+    blue.stopScan();
   }
 
   @override
@@ -77,7 +74,7 @@ class BleScannerState extends State<BleScanner> {
     );
   }
 
-  Widget _buildItem(BuildContext context, DiscoveredDevice device) {
+  Widget _buildItem(BuildContext context, BluetoothDevice device) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -94,9 +91,7 @@ class BleScannerState extends State<BleScanner> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(device.name.isNotEmpty ? device.name : '_NONAME_'),
-                Text(device.id),
-                Text('ServiceData: ${device.serviceData.keys.join(',')}'),
-                Text('ServiceUUID: ${device.serviceUuids.join(',')}')
+                Text(device.id.id),
               ],
             ))
           ],
