@@ -24,6 +24,7 @@ class BleScannerState extends State<BleScanner> {
   final blue = FlutterBluePlus.instance;
 
   Map<String, BluetoothDevice> devices = {};
+  StreamSubscription<List<ScanResult>>? scanSubscription;
 
   @override
   void initState() {
@@ -45,7 +46,7 @@ class BleScannerState extends State<BleScanner> {
       devices = {};
     });
     blue.startScan(timeout: const Duration(seconds: 5));
-    blue.scanResults.listen((event) {
+    scanSubscription = blue.scanResults.listen((event) {
       for (var r in event) {
         setState(() {
           devices[r.device.id.id] = r.device;
@@ -57,6 +58,7 @@ class BleScannerState extends State<BleScanner> {
   @override
   void dispose() {
     super.dispose();
+    scanSubscription?.cancel();
     blue.stopScan();
   }
 

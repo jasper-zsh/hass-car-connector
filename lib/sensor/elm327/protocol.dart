@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:hass_car_connector/service_locator.dart';
 import 'package:logger/logger.dart';
 
-typedef SendFunc = void Function(List<int> data);
+typedef SendFunc = Future<void> Function(List<int> data);
 
 class Elm327Protocol {
   Logger logger;
@@ -43,7 +43,7 @@ class Elm327Protocol {
   Future<String> send(String data) async {
     completer = Completer();
     var raw = List<int>.from(utf8.encode(data))..add(0x0D);
-    sendFunc(raw);
+    await sendFunc(raw);
     var res = await completer!.future;
     logger.i('Data: $res');
     return res;

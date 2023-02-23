@@ -76,20 +76,20 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
     var devices = await blue.connectedDevices;
     for (var device in devices) {
       if (device.id.id == config.deviceId!) {
-        this.device = device;
-        logger.i('Found connected device: $device');
-        onAdapterConnected();
-        return;
+        logger.i('Found connected device, disconnect first: $device');
+        await device.disconnect();
       }
     }
     setStatus(() {
       status?.adapter = 'scanning';
     });
     blue.startScan(timeout: const Duration(seconds: 5));
-    blue.scanResults.listen((event) async {
+    StreamSubscription<List<ScanResult>>? scanSub;
+    scanSub = blue.scanResults.listen((event) async {
       for (var r in event) {
         if (r.device.id.id == config.deviceId!) {
           device = r.device;
+          scanSub?.cancel();
           blue.stopScan();
           logger.i('Connecting to device $device');
           await device?.connect();
@@ -118,10 +118,12 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       }
     }
     if (reader != null && writer != null) {
-      protocol = Elm327Protocol(logger, (data) {
-        writer?.write(data);
+      protocol = Elm327Protocol(logger, (data) async {
+        await writer?.write(data);
       });
-      await reader.setNotifyValue(true);
+      if (!reader.isNotifying) {
+        await reader.setNotifyValue(true);
+      }
       readSubscription = reader.value.listen((event) {
         protocol?.receive(event);
       });
