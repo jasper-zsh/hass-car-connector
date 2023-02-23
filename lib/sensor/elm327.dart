@@ -38,10 +38,12 @@ class Elm327SensorStatus {
 class Elm327SensorConfig {
   String? deviceName;
   String? deviceId;
+  String? serviceUUID;
 
   Elm327SensorConfig({
     this.deviceName,
-    this.deviceId
+    this.deviceId,
+    this.serviceUUID,
   });
 
   factory Elm327SensorConfig.fromJson(Map<String, dynamic> json) => _$Elm327SensorConfigFromJson(json);
@@ -79,6 +81,12 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
 
   void connect() {
     logger.i('Start to connect to adapter ${config.deviceName} ${config.deviceId}');
+    ble!.connectToAdvertisingDevice(
+      id: config.deviceId!,
+      withServices: [Uuid.parse(config.serviceUUID!)],
+      prescanDuration: const Duration(seconds: 10),
+      connectionTimeout: const Duration(seconds: 15)
+    ).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
     conn = ble!.connectToDevice(id: config.deviceId!, connectionTimeout: const Duration(seconds: 15)).listen(onConnStateUpdated, onError: onConnError, onDone: onConnDone, cancelOnError: true);
   }
 

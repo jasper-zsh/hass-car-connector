@@ -46,10 +46,12 @@ class BleScannerState extends State<BleScanner> {
     setState(() {
       devices = {};
     });
-    deviceSubscription = ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((event) {
-      setState(() {
-        devices[event.id] = event;
-      });
+    deviceSubscription = ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((event) async {
+      if (event.name.isNotEmpty) {
+        setState(() {
+          devices[event.id] = event;
+        });
+      }
     }, onError: (e) {
       log('Scan failed: $e');
     });
@@ -91,8 +93,10 @@ class BleScannerState extends State<BleScanner> {
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(device.name),
-                Text(device.id)
+                Text(device.name.isNotEmpty ? device.name : '_NONAME_'),
+                Text(device.id),
+                Text('ServiceData: ${device.serviceData.keys.join(',')}'),
+                Text('ServiceUUID: ${device.serviceUuids.join(',')}')
               ],
             ))
           ],

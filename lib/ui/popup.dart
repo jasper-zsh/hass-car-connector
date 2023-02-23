@@ -29,3 +29,19 @@ Future<void> showPrompt({
   ));
   controller.clear();
 }
+
+Future<void> showAlert({
+  required BuildContext context,
+  required String title,
+  required String content
+}) async {
+  await showDialog(context: context, builder: (context) => AlertDialog(
+    title: Text(title),
+    content: Text(content),
+    actions: [
+      TextButton(onPressed: () {
+        Navigator.pop(context);
+      }, child: const Text('确定'))
+    ],
+  ));
+}

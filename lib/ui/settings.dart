@@ -5,7 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:hass_car_connector/database.dart';
 import 'package:hass_car_connector/entities/settings.dart';
 import 'package:hass_car_connector/service_locator.dart';
-import 'package:hass_car_connector/ui/prompt.dart';
+import 'package:hass_car_connector/ui/popup.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPage extends StatefulWidget {
