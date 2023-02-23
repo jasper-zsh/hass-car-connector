@@ -126,7 +126,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       }
     }
     if (reader != null && writer != null) {
-      protocol = Elm327Protocol((data) {
+      protocol = Elm327Protocol(logger, (data) {
         ble?.writeCharacteristicWithoutResponse(writer!, value: data);
       });
       readSubscription = ble!.subscribeToCharacteristic(reader!).listen((event) {

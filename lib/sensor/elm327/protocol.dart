@@ -8,14 +8,14 @@ import 'package:logger/logger.dart';
 typedef SendFunc = void Function(List<int> data);
 
 class Elm327Protocol {
-  final logger = locator<Logger>();
+  Logger logger;
   StreamController<int> rawController = StreamController();
   SendFunc sendFunc;
 
   StringBuffer responseBuffer = StringBuffer();
   Completer<String>? completer;
 
-  Elm327Protocol(this.sendFunc) {
+  Elm327Protocol(this.logger, this.sendFunc) {
     rawController.stream.listen((event) {
       var c = String.fromCharCode(event);
       switch (c) {
@@ -49,6 +49,19 @@ class Elm327Protocol {
     return res;
   }
 
+  List<int> bitToOffset(Uint8List data) {
+    var result = List<int>.empty(growable: true);
+    for (var i = 0; i < data.length; i ++) {
+      for (var j = 0; j < 8; j ++) {
+        var mask = 1.toUnsigned(8) << (7 - j);
+        if (data[i] & mask > 0) {
+          result.add(i * 8 + j + 1);
+        }
+      }
+    }
+    return result;
+  }
+
   Future<List<String>> service1Available() async {
     List<String> availablePIDs = ['00'];
     try {
@@ -61,18 +74,13 @@ class Elm327Protocol {
           break;
         }
         var res = await requestService1(cmd);
-        for (var j = 0; j < 4; j ++) {
-          for (var k = 0; k < 8; k ++) {
-            var mask = 1.toUnsigned(8) << k;
-            var mark = (res[j] & mask) > 0;
-            if (mark) {
-              var pid = (i + j * 8 + k + 1).toRadixString(16);
-              if (pid.length == 1) {
-                pid = '0$pid';
-              }
-              availablePIDs.add(pid.toUpperCase());
-            }
+        var offsets = bitToOffset(res);
+        for (var offset in offsets) {
+          var pid = (i + offset).toRadixString(16);
+          if (pid.length == 1) {
+            pid = '0$pid';
           }
+          availablePIDs.add(pid.toUpperCase());
         }
       }
     } catch (e) {
