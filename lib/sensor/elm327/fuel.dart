@@ -27,6 +27,7 @@ class FuelValue extends Value {
 
   @override
   List<String> get anyPIDs => List.from(afrPIDs, growable: true)
+      ..add(mafPID)
       // ..add('015E')  // fuel flow
       ..addAll(mapPIDs)
   ;
@@ -104,7 +105,7 @@ class FuelValue extends Value {
           break;
         }
       }
-      if (hasAFR && result.containsKey('10')) {
+      if (hasAFR && result.containsKey(mafPID)) {
         var afr = avgAFR(result);
         if (afr == null) {
           return null;
@@ -113,7 +114,7 @@ class FuelValue extends Value {
         if (afr == 0) {
           return null;
         }
-        var maf = result['10'];
+        var maf = result[mafPID];
         if (maf == null) {
           return null;
         }
@@ -154,8 +155,9 @@ typedef FuelFlowCalculator = double? Function(Map<String, double> result);
 List<String> afrPIDs = [
   '24', '25', '26', '27', '28', '29', '2A', '2B',
   '34', '35', '36', '37', '38', '39', '3A', '3B',
-  '10',
 ];
+
+const mafPID = '10';
 
 List<String> mapPIDs = ['0B', '0C', '0F'];
 
