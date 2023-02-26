@@ -43,7 +43,7 @@ class Elm327Protocol {
   Future<String> send(String data) async {
     completer = Completer();
     var raw = List<int>.from(utf8.encode(data))..add(0x0D);
-    await sendFunc(raw);
+    sendFunc(raw);
     var res = await completer!.future;
     logger.i('Data: $res');
     return res;

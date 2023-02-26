@@ -56,6 +56,8 @@ class SettingsPageState extends State<SettingsPage> {
       ),
       TextButton(onPressed: () async {
         await Geolocator.requestPermission();
+        await Permission.bluetoothConnect.request();
+        await Permission.bluetooth.request();
       }, child: Text('请求权限'))
     ];
     return ListView.separated(

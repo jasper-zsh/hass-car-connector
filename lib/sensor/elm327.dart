@@ -67,6 +67,7 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       logger.e('Bluetooth connect permission is not granted!');
       return;
     }
+    running = true;
     connect();
   }
 
@@ -89,11 +90,19 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       for (var r in event) {
         if (r.device.id.id == config.deviceId!) {
           device = r.device;
-          scanSub?.cancel();
-          blue.stopScan();
+          await scanSub?.cancel();
+          await blue.stopScan();
           logger.i('Connecting to device $device');
-          await device?.connect();
-          onAdapterConnected();
+          try {
+            await device?.connect(timeout: const Duration(seconds: 30), autoConnect: false);
+            onAdapterConnected();
+          } catch (e) {
+            logger.e('Failed to connect: $e');
+            if (running) {
+              logger.i('Retry!');
+              connect();
+            }
+          }
           return;
         }
       }
@@ -190,7 +199,6 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       }
     }
     status?.valueStatuses = {};
-    running = true;
     Timer.run(() async {
       while (running) {
         var results = <String, double>{};
