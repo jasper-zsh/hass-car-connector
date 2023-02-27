@@ -68,10 +68,10 @@ class Elm327Sensor extends Sensor<Elm327SensorStatus> {
       return;
     }
     running = true;
-    connect();
+    await connect();
   }
 
-  void connect() async {
+  Future<void> connect() async {
     blue.setLogLevel(LogLevel.info);
     logger.i('Start to connect to adapter ${config.deviceName} ${config.deviceId}');
     var devices = await blue.connectedDevices;

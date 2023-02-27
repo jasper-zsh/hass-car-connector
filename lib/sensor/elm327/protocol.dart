@@ -20,7 +20,11 @@ class Elm327Protocol {
       var c = String.fromCharCode(event);
       switch (c) {
         case '>': // end of response
-          completer?.complete(responseBuffer.toString());
+          var res = responseBuffer.toString();
+          if (completer == null) {
+            logger.w('Drop: $res');
+          }
+          completer!.complete(res);
           completer = null;
           responseBuffer.clear();
           break;

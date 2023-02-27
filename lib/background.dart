@@ -70,7 +70,7 @@ class ReporterService {
     logger.i('reloading reporter service...');
     await stop();
     await init();
-    start();
+    await start();
     logger.i('reporting service reloaded.');
   }
 
@@ -87,15 +87,27 @@ class ReporterService {
     }
   }
 
-  void start() async {
+  Future<void> start() async {
     for (var remote in remotes) {
-      await remote.start(
-        dataStream: dataStreamController.stream,
-        discoveryStream: discoveryStreamController.stream
-      );
+      () async {
+        try {
+          await remote.start(
+              dataStream: dataStreamController.stream,
+              discoveryStream: discoveryStreamController.stream
+          );
+        } catch (e) {
+          logger.e('Failed to start remote ${remote.runtimeType.toString()} : $e');
+        }
+      }();
     }
     for (var sensor in sensors) {
-      await sensor.start();
+      () async {
+        try {
+          await sensor.start();
+        } catch (e) {
+          logger.e('Failed to start sensor ${sensor.runtimeType.toString()} : $e');
+        }
+      }();
     }
   }
 
