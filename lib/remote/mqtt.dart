@@ -64,7 +64,13 @@ class MqttRemote extends Remote {
     if (identifier.isEmpty) {
       identifier = 'hass_car';
     }
-    client = MqttServerClient("${config.scheme}://${config.host}${config.path}", "hass_car.$identifier");
+    String host;
+    if (['mqtt'].contains(config.scheme)) {
+      host = config.host!;
+    } else {
+      host = "${config.scheme}://${config.host}${config.path}";
+    }
+    client = MqttServerClient(host, "hass_car.$identifier");
     if (['ws', 'wss'].contains(config.scheme)) {
       client.useWebSocket = true;
     }

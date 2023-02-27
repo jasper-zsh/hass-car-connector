@@ -73,7 +73,7 @@ class MqttRemoteConfigFormState extends State<MqttRemoteConfigForm> {
         onSaved: (value) {
           config.scheme = value;
         },
-        items: ['ws', 'wss'].map((e) => DropdownMenuItem<String>(
+        items: ['mqtt', 'ws', 'wss'].map((e) => DropdownMenuItem<String>(
           value: e,
           child: Text(e),
         )).toList(),
